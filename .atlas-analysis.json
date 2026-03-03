@@ -1,0 +1,113 @@
+{
+  "projectType": "infrastructure",
+  "projectName": "Terra Packages",
+  "projectDescription": "A rolling-release Fedora repository monorepo containing package manifests for applications, libraries, desktop environments, games, multimedia, and system tools.",
+  "theme": "aspen",
+  "primaryColor": "#8B4513",
+  "lightColor": "#D2691E",
+  "darkColor": "#654321",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "installation",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "concepts/repository-structure",
+              "concepts/package-manifests",
+              "concepts/subrepos"
+            ]
+          },
+          {
+            "group": "Package Categories",
+            "pages": [
+              "packages/applications",
+              "packages/desktop-environments",
+              "packages/development-tools",
+              "packages/fonts",
+              "packages/games",
+              "packages/libraries",
+              "packages/multimedia",
+              "packages/system-tools",
+              "packages/themes"
+            ]
+          },
+          {
+            "group": "Contributing",
+            "pages": [
+              "contributing/getting-started",
+              "contributing/adding-packages",
+              "contributing/package-guidelines",
+              "contributing/testing"
+            ]
+          },
+          {
+            "group": "Subrepos",
+            "pages": [
+              "subrepos/extras",
+              "subrepos/nvidia",
+              "subrepos/mesa",
+              "subrepos/multimedia"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Reference",
+        "groups": [
+          {
+            "group": "Package Management",
+            "pages": [
+              "reference/anda-hcl",
+              "reference/rpm-specs",
+              "reference/build-system"
+            ]
+          },
+          {
+            "group": "CI/CD",
+            "pages": [
+              "reference/workflows",
+              "reference/automation"
+            ]
+          },
+          {
+            "group": "Resources",
+            "pages": [
+              "reference/faq",
+              "reference/troubleshooting",
+              "reference/community"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "500+ package definitions across multiple categories",
+    "HCL-based package manifest system (anda.hcl)",
+    "Multiple subrepos for extras, NVIDIA drivers, Mesa, and multimedia",
+    "Automated CI/CD with GitHub Actions for building and publishing",
+    "Support for Fedora and Enterprise Linux (EL10)",
+    "Rolling-release model with quality and security assurance",
+    "RPM packaging with comprehensive build configurations"
+  ],
+  "publicApiSurface": [
+    "anda.hcl - Package manifest configuration format",
+    "terra-release - Main repository release package",
+    "terra-release-extras - Extras subrepo with conflicting packages",
+    "terra-release-nvidia - NVIDIA drivers subrepo",
+    "terra-release-mesa - Patched Mesa graphics drivers",
+    "terra-release-multimedia - Multimedia codecs and tools",
+    "comps.xml - Package group definitions",
+    "RPM spec files - Package build specifications"
+  ]
+}
