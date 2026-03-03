@@ -1,0 +1,351 @@
+---
+title: Themes
+description: Desktop themes, icon packs, and cursor themes in Terra Packages
+---
+
+Terra Packages provides a curated collection of modern desktop themes, icon packs, and cursor themes to customize your Linux desktop experience.
+
+## Theme Categories
+
+<CardGroup cols={2}>
+  <Card title="Icon Themes" icon="icons">
+    Modern icon packs for various desktop environments
+  </Card>
+  <Card title="GTK Themes" icon="palette">
+    Complete GTK3/GTK4 themes
+  </Card>
+  <Card title="KDE Themes" icon="k">
+    Plasma themes and color schemes
+  </Card>
+  <Card title="Cursor Themes" icon="arrow-pointer">
+    Modern cursor designs
+  </Card>
+</CardGroup>
+
+## Icon Themes
+
+<AccordionGroup>
+  <Accordion title="Fluent Icon Theme">
+    **fluent-icon-theme** - Microsoft Fluent-inspired icon theme
+    
+    ```hcl
+    project "pkg" {
+      arches = ["x86_64"]
+      rpm {
+        spec = "fluent-icon-theme.spec"
+      }
+    }
+    ```
+    
+    From the spec file:
+    ```spec
+    Name:           fluent-icon-theme
+    Version:        20250821
+    Summary:        Fluent icon theme for linux desktops
+    License:        GPL-3.0
+    URL:            https://github.com/vinceliuice/Fluent-icon-theme/
+    BuildArch:      noarch
+    ```
+    
+    Includes multiple variants:
+    - Fluent (standard)
+    - Fluent-dark
+    - Fluent-light
+    - Color variants: green, grey, orange, pink, purple, red, teal, yellow
+  </Accordion>
+
+  <Accordion title="Tela Icon Theme">
+    **tela-icon-theme** - Flat colorful icon theme
+    
+    Modern, vibrant icon theme with excellent coverage of applications and file types.
+  </Accordion>
+
+  <Accordion title="Breeze Plus Icon Theme">
+    **breeze-plus-icon-theme** - Enhanced Breeze icon theme
+    
+    Extended version of KDE's Breeze icons with additional coverage.
+  </Accordion>
+
+  <Accordion title="Adwaita++ Icons">
+    **adwaita++-icons** - Extended Adwaita icon theme
+    
+    GNOME's Adwaita icons with additional third-party application icons.
+  </Accordion>
+
+  <Accordion title="Hydrogen Icon Theme">
+    **hydrogen-icon-theme** - Modern icon theme
+    
+    Clean, consistent icon design for desktop environments.
+  </Accordion>
+</AccordionGroup>
+
+## GTK Themes
+
+<AccordionGroup>
+  <Accordion title="Fluent Theme">
+    **fluent-theme** - Microsoft Fluent Design-inspired GTK theme
+    
+    Complete GTK3/GTK4 theme matching the Fluent icon theme.
+    Modern, clean design with rounded corners and smooth transitions.
+  </Accordion>
+
+  <Accordion title="Orchis Theme">
+    **orchis-theme** - Material Design-inspired GTK theme
+    
+    Beautiful theme with:
+    - Multiple color variants
+    - Light and dark modes
+    - Excellent GNOME Shell integration
+  </Accordion>
+
+  <Accordion title="Helium GTK Theme">
+    **helium-gtk-theme** - Modern, minimalist GTK theme
+    
+    Clean design focused on usability and modern aesthetics.
+  </Accordion>
+</AccordionGroup>
+
+## KDE/Plasma Themes
+
+<AccordionGroup>
+  <Accordion title="Fluent KDE Theme">
+    **fluent-kde-theme** - Fluent Design for KDE Plasma
+    
+    Complete Plasma theme matching Fluent design language:
+    - Plasma theme
+    - Aurorae window decorations  
+    - Color schemes
+    - Kvantum theme
+  </Accordion>
+
+  <Accordion title="Klassy">
+    **klassy** - Highly customizable Plasma theme
+    
+    Advanced theming engine for KDE Plasma with extensive customization options.
+  </Accordion>
+
+  <Accordion title="Lightly">
+    **lightly-qt5** - Light and clean Qt5 theme
+    **lightly-qt6** - Light and clean Qt6 theme
+    
+    Modern, subtle theme for Qt applications with minimal visual noise.
+  </Accordion>
+
+  <Accordion title="KDE Material You Colors">
+    **kde-material-you-colors** - Material You color scheme generator
+    
+    Generate KDE color schemes from wallpapers using Material You/Material 3 principles.
+  </Accordion>
+</AccordionGroup>
+
+## Cursor Themes
+
+<AccordionGroup>
+  <Accordion title="Bibata Cursor Theme">
+    **bibata-cursor-theme** - Modern, minimal cursor theme
+    
+    ```hcl
+    project pkg {
+      arches = ["x86_64"]
+      rpm {
+        spec = "bibata-cursor-theme.spec"
+      }
+    }
+    ```
+    
+    Popular cursor theme with:
+    - Multiple color variants
+    - Various sizes
+    - High-DPI support
+    - Smooth, modern design
+  </Accordion>
+
+  <Accordion title="Google Black Cursor Theme">
+    **google-black-cursor-theme** - Google Material-inspired cursors
+    
+    Clean, professional cursor design following Google's Material Design.
+  </Accordion>
+</AccordionGroup>
+
+## Unity/Lomiri Assets
+
+**unity-asset-pool** - Asset pool for Unity desktop environment
+
+Shared assets and resources for Unity/Lomiri desktop environments.
+
+## Installation
+
+### Install Complete Fluent Theme Suite
+
+```bash
+sudo dnf install fluent-icon-theme fluent-theme fluent-kde-theme bibata-cursor-theme
+```
+
+### Install for GNOME
+
+```bash
+sudo dnf install orchis-theme adwaita++-icons bibata-cursor-theme
+```
+
+### Install for KDE Plasma
+
+```bash
+sudo dnf install fluent-kde-theme klassy lightly-qt6 bibata-cursor-theme
+```
+
+### Install Icon Themes
+
+```bash
+sudo dnf install tela-icon-theme
+sudo dnf install hydrogen-icon-theme
+sudo dnf install breeze-plus-icon-theme
+```
+
+## Applying Themes
+
+### GNOME/GTK
+
+1. **Using GNOME Tweaks**:
+   ```bash
+   sudo dnf install gnome-tweaks
+   gnome-tweaks
+   ```
+   Navigate to Appearance and select your theme.
+
+2. **Using gsettings**:
+   ```bash
+   gsettings set org.gnome.desktop.interface gtk-theme 'Fluent'
+   gsettings set org.gnome.desktop.interface icon-theme 'Fluent'
+   gsettings set org.gnome.desktop.interface cursor-theme 'Bibata-Modern-Classic'
+   ```
+
+### KDE Plasma
+
+1. **System Settings**:
+   - Open System Settings
+   - Navigate to Appearance
+   - Select Global Theme, Icons, Colors, Cursors as needed
+
+2. **Command Line**:
+   ```bash
+   lookandfeeltool -a fluent-kde-theme
+   ```
+
+### Universal GTK Theme Application
+
+For consistency across environments:
+
+```bash
+# Create/edit ~/.config/gtk-3.0/settings.ini
+[Settings]
+gtk-theme-name=Fluent
+gtk-icon-theme-name=Fluent
+gtk-cursor-theme-name=Bibata-Modern-Classic
+```
+
+## Package Structure
+
+Theme packages typically:
+- Are architecture-specific (x86_64) or noarch
+- Install to `/usr/share/themes/` (GTK/window themes)
+- Install to `/usr/share/icons/` (icon and cursor themes)
+- Install to `/usr/share/plasma/` (Plasma themes)
+
+Example from Fluent icon theme:
+
+```spec
+BuildArch:      noarch
+BuildRequires:  gtk-update-icon-cache fdupes
+
+%install
+mkdir -p %buildroot%_datadir/themes
+./install.sh -a -d %buildroot%_datadir/icons
+%fdupes -s %buildroot%_datadir/icons/
+```
+
+## Theme Variants
+
+Many themes provide multiple variants:
+
+### Fluent Icons
+- Base variants: Fluent, Fluent-dark, Fluent-light
+- Color variants: green, grey, orange, pink, purple, red, teal, yellow
+- Each color has standard, dark, and light versions
+
+### Orchis Theme
+- Light and dark modes
+- Standard, compact variants
+- Multiple accent colors
+
+### Bibata Cursors
+- Modern variants (Amber, Classic, Ice)
+- Original variants
+- Multiple sizes for HiDPI
+
+## Theme Compatibility
+
+<Note>
+  Theme compatibility varies by desktop environment:
+</Note>
+
+- **GTK3/GTK4**: GNOME, Xfce, Cinnamon, MATE, Budgie
+- **Qt5/Qt6**: KDE Plasma, LXQt
+- **Icons**: Universal (all environments)
+- **Cursors**: Universal (all environments)
+
+## High DPI Support
+
+<Note>
+  Modern themes and icons include HiDPI/Retina support:
+</Note>
+
+- Icon themes provide multiple sizes (16px to 512px)
+- Cursor themes include 2x/3x scaled versions
+- GTK themes use scalable SVG elements where possible
+
+## Available Themes Summary
+
+The themes directory contains 16+ packages:
+
+**Icon Themes**:
+- fluent-icon-theme (with color variants)
+- tela-icon-theme
+- hydrogen-icon-theme  
+- breeze-plus-icon-theme
+- adwaita++-icons
+
+**GTK Themes**:
+- fluent-theme
+- orchis-theme
+- helium-gtk-theme
+
+**KDE Themes**:
+- fluent-kde-theme
+- klassy
+- lightly-qt5, lightly-qt6
+- kde-material-you-colors
+
+**Cursor Themes**:
+- bibata-cursor-theme
+- google-black-cursor-theme
+
+**Desktop Assets**:
+- unity-asset-pool
+
+For the complete list, browse the `anda/themes/` directory in the source repository.
+
+## Creating Your Own Theme
+
+For theme development, useful tools include:
+
+```bash
+sudo dnf install gtk3-devel gtk4-devel
+sudo dnf install inkscape # For icon design
+sudo dnf install sassc # For compiling SCSS themes
+```
+
+## See Also
+
+- [Desktop Environments](/packages/desktop-environments) - Desktop environment packages
+- [Fonts](/packages/fonts) - Font packages to complement your theme
+- [Applications](/packages/applications) - Desktop applications

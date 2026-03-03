@@ -1,80 +1,340 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: Quick start
+description: Get up and running with Terra packages in minutes
 ---
 
-## Get started in three steps
+This guide will help you start using Terra packages right away. If you haven't installed Terra yet, visit the [installation guide](/installation) first.
 
-Get your documentation site running locally and make your first customization.
+## Install your first package
 
-### Step 1: Set up your local environment
+Once Terra is set up, installing packages is straightforward:
+
+<CodeGroup>
+  ```bash Standard Fedora
+  sudo dnf install <package-name>
+  ```
+
+  ```bash Atomic editions
+  sudo rpm-ostree install <package-name>
+  ```
+</CodeGroup>
+
+## Popular packages to try
+
+Here are some popular packages you can install from Terra right away:
 
 <AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
+  <Accordion title="Discord - Communication platform">
+    Install the latest Discord client:
+
+    ```bash
+    sudo dnf install discord
+    ```
+
+    Terra also offers alternative Discord builds:
+    - `discord-openasar` - Discord with OpenAsar for improved performance
+    - `discord-canary` - Discord Canary (beta) builds
+    - `discord-ptb` - Discord Public Test Build
   </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
+
+  <Accordion title="VS Codium - Code editor">
+    Get VS Codium (VSCode without Microsoft telemetry):
+
+    ```bash
+    sudo dnf install codium
+    ```
+
+    For marketplace support:
+
+    ```bash
+    sudo dnf install codium-marketplace
+    ```
+  </Accordion>
+
+  <Accordion title="Anki - Flashcard learning">
+    Install Anki for spaced repetition learning:
+
+    ```bash
+    sudo dnf install anki
+    ```
+
+    Alternative builds available:
+    - `anki-bin` - Official binary build
+    - `anki-qt5` - Qt5 version for older systems
+  </Accordion>
+
+  <Accordion title="Bun - JavaScript runtime">
+    Install Bun, the fast all-in-one JavaScript runtime:
+
+    ```bash
+    sudo dnf install bun
+    ```
   </Accordion>
 </AccordionGroup>
 
-### Step 2: Deploy your changes
+## Search for packages
 
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
+You can search for available packages in several ways:
 
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
+<Steps>
+  <Step title="Search using dnf">
+    Use the built-in package search:
 
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
+    ```bash
+    dnf search <keyword>
+    ```
 
-### Step 3: Go live
+    For example, to find game-related packages:
 
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
+    ```bash
+    dnf search game
+    ```
+  </Step>
 
-## Next steps
+  <Step title="Browse online">
+    Visit package databases to see what's available:
 
-Now that you have your docs running, explore these key features:
+    - [pkgs.org Terra repository](https://fedora.pkgs.org/rawhide/terra/)
+    - [Repology Terra tracking](https://repology.org/repository/terra_rawhide)
+
+    These sites provide detailed package information, dependencies, and version tracking.
+  </Step>
+
+  <Step title="List all packages">
+    See all packages available in Terra:
+
+    ```bash
+    dnf repository-packages terra list available
+    ```
+
+    To see packages from a specific subrepo:
+
+    ```bash
+    dnf repository-packages terra-extras list available
+    ```
+  </Step>
+</Steps>
+
+## Explore package categories
+
+Terra organizes packages into several categories:
 
 <CardGroup cols={2}>
+  <Card title="Applications" icon="window">
+    **Example packages:**
+    - `discord` - Communication platform
+    - `bitwarden` - Password manager (CLI)
+    - `flameshot` - Screenshot tool
+    - `audacity-freeworld` - Audio editor with extra codecs
+  </Card>
 
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
+  <Card title="Games" icon="gamepad">
+    **Example packages:**
+    - `gamescope-session` - Gaming session manager
+    - `emulationstation-de` - Emulator frontend
+    - `8bitdo-udev-rules` - Controller support
+    - `chess-tui` - Terminal chess game
+  </Card>
 
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
+  <Card title="Development" icon="code">
+    **Example packages:**
+    - `android-studio` - Android development IDE
+    - `bun` - JavaScript runtime
+    - `codium` - Code editor
+    - `asdf` - Version manager
+  </Card>
 
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
+  <Card title="System" icon="gear">
+    **Example packages:**
+    - `nvidia` drivers (via nvidia subrepo)
+    - `mesa` patched builds (via mesa subrepo)
+    - NVIDIA and system utilities
+  </Card>
 </CardGroup>
 
+## Using subrepo packages
+
+If you've installed optional subrepos, here's how to use them:
+
+### Extras subrepo
+
+The Extras subrepo contains patched or alternative versions of packages:
+
+```bash
+# First install the subrepo
+sudo dnf install terra-release-extras
+
+# Then install packages from it
+sudo dnf install audacity-freeworld
+```
+
+<Warning>
+  Some Extras packages may conflict with Fedora or RPM Fusion packages. Review package descriptions carefully.
+</Warning>
+
+### NVIDIA subrepo
+
+For NVIDIA graphics drivers:
+
+```bash
+# Install the NVIDIA subrepo
+sudo dnf install terra-release-nvidia
+
+# Install NVIDIA drivers
+sudo dnf install nvidia-driver
+```
+
+### Mesa subrepo
+
+For codec-complete Mesa:
+
+```bash
+# Install the Mesa subrepo
+sudo dnf install terra-release-mesa
+
+# Update to Terra's Mesa
+sudo dnf distro-sync
+```
+
 <Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
+  The Mesa subrepo will replace your system's Mesa packages with Terra's patched versions.
+</Note>
+
+## Keep Terra updated
+
+Terra is a rolling-release repository, so you'll get updates as they're released:
+
+<CodeGroup>
+  ```bash Standard Fedora
+  sudo dnf upgrade
+  ```
+
+  ```bash Atomic editions
+  sudo rpm-ostree upgrade
+  ```
+</CodeGroup>
+
+To update only Terra packages:
+
+```bash
+sudo dnf repository-packages terra upgrade
+```
+
+## Package information
+
+Get detailed information about any package:
+
+```bash
+dnf info <package-name>
+```
+
+See what a package provides:
+
+```bash
+dnf repoquery --provides <package-name>
+```
+
+Check package dependencies:
+
+```bash
+dnf repoquery --requires <package-name>
+```
+
+## Remove packages
+
+If you need to remove a Terra package:
+
+<CodeGroup>
+  ```bash Standard Fedora
+  sudo dnf remove <package-name>
+  ```
+
+  ```bash Atomic editions
+  sudo rpm-ostree uninstall <package-name>
+  ```
+</CodeGroup>
+
+## Common workflows
+
+<AccordionGroup>
+  <Accordion title="Setting up a development environment">
+    Install essential development tools from Terra:
+
+    ```bash
+    # Install modern developer tools
+    sudo dnf install bun codium android-studio
+
+    # Add version managers
+    sudo dnf install asdf
+    ```
+  </Accordion>
+
+  <Accordion title="Building a gaming setup">
+    Get gaming tools and utilities:
+
+    ```bash
+    # Install gaming session and tools
+    sudo dnf install gamescope-session emulationstation-de
+
+    # Add controller support
+    sudo dnf install 8bitdo-udev-rules
+    ```
+  </Accordion>
+
+  <Accordion title="Enhancing multimedia support">
+    Install codec-complete applications:
+
+    ```bash
+    # Install the multimedia subrepo
+    sudo dnf install terra-release-multimedia
+
+    # Get codec-enhanced applications
+    sudo dnf install audacity-freeworld
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## What's next?
+
+<CardGroup cols={2}>
+  <Card
+    title="Browse all packages"
+    icon="magnifying-glass"
+    href="https://fedora.pkgs.org/rawhide/terra/"
+  >
+    Explore the complete Terra package catalog
+  </Card>
+  <Card
+    title="Contribute packages"
+    icon="code-pull-request"
+    href="https://developer.fyralabs.com/terra/contributing"
+  >
+    Learn how to add packages to Terra
+  </Card>
+  <Card
+    title="Read the FAQ"
+    icon="circle-question"
+    href="https://developer.fyralabs.com/terra/faq"
+  >
+    Get answers to common questions
+  </Card>
+  <Card
+    title="Join the community"
+    icon="comments"
+    href="https://wiki.ultramarine-linux.org/en/community/community/"
+  >
+    Connect with other Terra users
+  </Card>
+</CardGroup>
+
+## Need help?
+
+If you run into issues or have questions:
+
+1. Check the [FAQ](https://developer.fyralabs.com/terra/faq) for common solutions
+2. Join our [community chat](https://wiki.ultramarine-linux.org/en/community/community/) for support
+3. Review the full [developer documentation](https://developer.fyralabs.com/terra/)
+
+<Note>
+  Terra is community-driven. We welcome your feedback and contributions!
 </Note>

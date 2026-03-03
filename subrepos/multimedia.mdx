@@ -1,0 +1,371 @@
+---
+title: Multimedia Codecs
+description: Enhanced multimedia packages and codecs for Fedora
+---
+
+## Overview
+
+The Terra Multimedia subrepo provides enhanced multimedia packages and codecs that may conflict with Fedora's standard packages. This repository includes cutting-edge video/audio codecs, multimedia frameworks, and creative applications with full codec support.
+
+<Warning>
+  Some packages in this repository may include patent-encumbered codecs. Ensure you have the legal right to use these codecs in your jurisdiction.
+</Warning>
+
+## Repository Configuration
+
+```ini
+[terra-multimedia]
+name=Terra $releasever (Multimedia)
+metalink=https://tetsudou.fyralabs.com/metalink?repo=terra$releasever-multimedia&arch=$basearch
+metadata_expire=6h
+type=rpm
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-terra$releasever-multimedia
+repo_gpgcheck=1
+enabled=1
+priority=80
+```
+
+<Note>
+  Priority 80 ensures multimedia packages from this repository override Fedora's limited-codec versions.
+</Note>
+
+## Installation
+
+<Steps>
+  <Step title="Enable the repository">
+    Install the Terra Multimedia release package:
+    
+    ```bash
+    sudo dnf install terra-release-multimedia
+    ```
+  </Step>
+  
+  <Step title="Install FFmpeg">
+    Install the full-featured FFmpeg:
+    
+    ```bash
+    sudo dnf install ffmpeg
+    ```
+  </Step>
+  
+  <Step title="Install GStreamer plugins (optional)">
+    For complete media playback in GNOME and other desktop environments:
+    
+    ```bash
+    sudo dnf install gstreamer1-plugins-{bad,ugly} gstreamer1-plugin-libav gstreamer1-vaapi
+    ```
+  </Step>
+  
+  <Step title="Verify installation">
+    Check FFmpeg codecs:
+    
+    ```bash
+    ffmpeg -codecs | grep -E "h264|h265|aac"
+    ```
+  </Step>
+</Steps>
+
+## Core Packages
+
+### FFmpeg
+
+The flagship package providing comprehensive multimedia framework:
+
+```spec
+Name:           ffmpeg
+Version:        8.0.1
+Epoch:          1
+License:        LGPLv3+
+URL:            http://ffmpeg.org/
+```
+
+**FFmpeg includes support for:**
+
+#### Video Codecs
+- **H.264/AVC** (x264) - Universal video codec
+- **H.265/HEVC** (x265) - Next-gen high-efficiency codec
+- **AV1** (SVT-AV1) - Royalty-free modern codec
+- **VP9** (SVT-VP9) - Google's high-quality codec
+- **VVC/H.266** (vvenc/vvdec) - Cutting-edge codec
+- **XEVE/XEVD** - MPEG-5 EVC codec
+- **MPEG-2** - Legacy broadcast codec
+
+#### Hardware Acceleration
+- **NVIDIA NVENC/NVDEC** - NVIDIA GPU acceleration
+- **Intel Quick Sync** - Intel GPU acceleration
+- **AMD AMF** - AMD GPU acceleration
+- **VA-API** - Linux video acceleration API
+- **VDPAU** - NVIDIA/AMD video decode API
+
+#### Advanced Features
+- **HandBrake patches** - Enhanced encoding compatibility
+- **Chromium patches** - Better browser integration
+- **DeckLink SDK 14** - Blackmagic hardware support
+- **LCEVCdec** - MPEG-5 LCEVC enhancement layer
+- **CUDA 13** - Latest NVIDIA CUDA support
+
+### GStreamer Plugins
+
+Comprehensive multimedia framework for desktop applications.
+
+#### gstreamer1-plugins-ugly
+
+Provides patent-encumbered but commonly needed plugins:
+- **x264** encoder/decoder
+- **x265** encoder/decoder
+- MPEG-2 support
+- MP3 decoding
+- DVD playback
+
+#### gstreamer1-plugins-bad
+
+Experimental and specialized plugins:
+- **OpenCV** integration
+- **OpenH264** support
+- **LCEVCdec** support
+- Hardware acceleration
+- Advanced filters and effects
+
+Applied patches:
+```spec
+Patch0: gstreamer1-plugins-bad-lcevcdec4.patch
+```
+
+#### gstreamer1-plugin-libav
+
+FFmpeg integration for GStreamer:
+```spec
+Version: (matches FFmpeg version)
+```
+
+Provides access to all FFmpeg codecs through GStreamer.
+
+#### gstreamer1-vaapi
+
+Hardware-accelerated video encoding/decoding via VA-API.
+
+#### gstreamer1-plugin-icamerasrc
+
+Intel camera source plugin with video format patches:
+```spec
+Patch0: gstreamer1-plugin-icamerasrc-videoformat.patch
+```
+
+## Video Codec Libraries
+
+### x264
+H.264/AVC encoder library - industry standard for video encoding.
+
+### x265
+H.265/HEVC encoder library with advanced features:
+
+**Applied patches:**
+```spec
+Patch0: x265-high-bit-depth-soname.patch
+Patch1: x265-pic.patch
+Patch2: x265-pkgconfig_path_fix.patch
+Patch3: x265-sei-length-crash-fix.patch
+```
+
+### XEVE/XEVD
+MPEG-5 Essential Video Coding encoder and decoder:
+
+**XEVE patches:**
+```spec
+Patch0: xeve-fix-build-i386.patch
+Patch1: xeve-fix-build-on-non-x86.patch
+Patch2: xeve-link-libm.patch
+```
+
+**XEVD patches:**
+```spec
+Patch0: xevd-fix-build-on-non-x86.patch
+Patch1: xevd-link-libm.patch
+```
+
+### VVenC/VVdeC
+Versatile Video Coding (H.266/VVC) encoder and decoder - next generation codec.
+
+### Kvazaar
+Open-source HEVC encoder implementation.
+
+### uavs3d
+AVS3 decoder with architecture fixes:
+```spec
+Patch0: i686-build-fix.patch
+Patch1: uavs3d-soname.patch
+```
+
+### LCEVCdec
+MPEG-5 LCEVC (Low Complexity Enhancement Video Coding) decoder.
+
+## Audio Packages
+
+### sndio
+Small audio and MIDI framework.
+
+### rtaudio (nightly)
+Realtime audio I/O library - nightly builds for latest features.
+
+### vgmstream
+Video game music stream decoder - play game audio formats.
+
+### TDF (The Decoding Forest)
+Multi-format audio decoding library.
+
+## Music Production
+
+### Zrythm
+Digital audio workstation (DAW) for music production.
+
+### Carla
+Modular audio plugin host.
+
+### Yabridge
+Run Windows VST plugins on Linux.
+
+### OpenUtau
+Open-source singing synthesis software.
+
+### Deadbeef
+Lightweight music player with extensive plugin support.
+
+#### deadbeef-mpris2-plugin
+MPRIS2 support for Deadbeef - desktop integration.
+
+## Video Production
+
+### mjpegtools
+Tools for MJPEG video recording and playback.
+
+### gpu-screen-recorder
+Hardware-accelerated screen recording:
+- Minimal CPU usage
+- NVIDIA/AMD GPU support
+- Real-time encoding
+
+## Package List Summary
+
+The Terra Multimedia repository contains **23 packages** spanning:
+
+| Category | Count | Examples |
+|----------|-------|----------|
+| Video Codecs | 8 | x264, x265, xeve, vvenc |
+| GStreamer | 5 | plugins-bad, plugins-ugly, libav |
+| Audio | 4 | sndio, rtaudio, vgmstream |
+| Music Production | 5 | zrythm, carla, yabridge |
+| Core Framework | 1 | FFmpeg |
+
+## Use Cases
+
+### Video Playback
+
+For complete video playback support:
+
+```bash
+sudo dnf install ffmpeg gstreamer1-plugins-{bad,ugly} gstreamer1-plugin-libav
+```
+
+This enables:
+- All video formats in media players
+- YouTube and streaming services
+- DVD/Blu-ray playback
+- Game capture playback
+
+### Content Creation
+
+For video editing and encoding:
+
+```bash
+sudo dnf install ffmpeg x264 x265 gpu-screen-recorder
+```
+
+### Music Production
+
+For digital audio workstation setup:
+
+```bash
+sudo dnf install zrythm carla yabridge rtaudio
+```
+
+### Game Streaming
+
+For streaming and recording gameplay:
+
+```bash
+sudo dnf install gpu-screen-recorder ffmpeg
+```
+
+## Hardware Acceleration
+
+To enable hardware-accelerated encoding/decoding:
+
+### For Intel GPUs
+```bash
+sudo dnf install intel-media-driver gstreamer1-vaapi
+```
+
+### For AMD GPUs
+```bash
+sudo dnf install mesa-va-drivers gstreamer1-vaapi
+```
+
+### For NVIDIA GPUs
+```bash
+# FFmpeg already includes NVENC/NVDEC support
+# Ensure NVIDIA drivers are installed from terra-nvidia
+```
+
+## Legal Considerations
+
+<Warning>
+  Some codecs (H.264, H.265, AAC) may be patent-encumbered in certain jurisdictions. Terra provides these packages for convenience, but users are responsible for ensuring they have the legal right to use them.
+</Warning>
+
+Royalty-free codecs available in this repository:
+- **AV1** - Completely royalty-free
+- **VP9** - Google's royalty-free codec
+- **Opus** - Modern royalty-free audio codec
+
+## Troubleshooting
+
+### Missing codecs in applications
+
+If videos don't play after installation:
+
+1. Clear GStreamer cache:
+   ```bash
+   rm -rf ~/.cache/gstreamer-1.0
+   ```
+
+2. Rebuild plugin registry:
+   ```bash
+   gst-inspect-1.0
+   ```
+
+3. Test codec availability:
+   ```bash
+   gst-inspect-1.0 | grep -E "x264|x265|libav"
+   ```
+
+### FFmpeg encoding issues
+
+Verify codec support:
+```bash
+ffmpeg -encoders | grep -E "h264|hevc|av1"
+```
+
+Test hardware acceleration:
+```bash
+ffmpeg -hwaccels
+```
+
+## Source Packages
+
+Access source RPMs:
+
+```bash
+sudo dnf config-manager --set-enabled terra-multimedia-source
+dnf download --source ffmpeg
+```

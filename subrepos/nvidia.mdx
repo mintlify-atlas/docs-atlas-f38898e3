@@ -1,0 +1,179 @@
+---
+title: NVIDIA Drivers
+description: NVIDIA proprietary driver packages for Fedora
+---
+
+## Overview
+
+The Terra NVIDIA subrepo provides proprietary NVIDIA graphics drivers optimized for Fedora systems. These driver packages are based on negativo17's NVIDIA driver packages with slight modifications for improved hardware compatibility and conformance to Terra packaging guidelines.
+
+<Warning>
+  Installing NVIDIA drivers from this repository will replace Nouveau (the open-source NVIDIA driver) and may conflict with Fedora's standard graphics stack.
+</Warning>
+
+## Architecture
+
+### Direct Extraction Method
+
+Unlike other NVIDIA packaging solutions, Terra uses a unique approach to package the drivers:
+
+<Note>
+  Terra does not manually generate a tarball from NVIDIA installers. Instead, we extract the NVIDIA installer on-the-fly during the build process.
+</Note>
+
+The spec file uses this method:
+
+```rpmspec
+Source0: http://download.nvidia.com/XFree86/Linux-%{_arch}/%{version}/NVIDIA-Linux-%{_arch}-%{version}.run
+
+%prep
+sh %{SOURCE0} -x --target nvidia-driver-%{version}
+%setup -T -D -n nvidia-driver-%{version}
+
+%build
+# Build the package as usual
+```
+
+This approach:
+- Ensures packages can be easily maintained and updated
+- Works as long as NVIDIA's self-extracting installer maintains the same command-line options
+- Eliminates the need for pre-generated tarballs
+- Comes with a slight cost: downloading the NVIDIA installer for every build
+
+## Available Packages
+
+The Terra NVIDIA repository includes the following packages:
+
+### Core Driver Packages
+
+- **nvidia-driver** - Main NVIDIA graphics driver package
+- **nvidia-kmod** - Kernel modules for NVIDIA driver
+- **nvidia-kmod-common** - Common files for NVIDIA kernel modules
+- **dkms-nvidia** - DKMS (Dynamic Kernel Module Support) for NVIDIA
+
+### Additional Components
+
+- **nvidia-settings** - NVIDIA control panel for configuring graphics settings
+- **nvidia-persistenced** - NVIDIA persistence daemon
+- **nvidia-modprobe** - NVIDIA module loading utility
+- **libva-nvidia-driver** - VA-API support for NVIDIA GPUs
+- **nvidia-container-toolkit** - NVIDIA container runtime for Docker/Podman
+- **compat-nvidia-repo** - Compatibility metapackages
+
+## Repository Configuration
+
+The NVIDIA repository is configured with higher priority than Terra Extras:
+
+```ini
+[terra-nvidia]
+name=Terra $releasever (NVIDIA)
+metalink=https://tetsudou.fyralabs.com/metalink?repo=terra$releasever-nvidia&arch=$basearch
+metadata_expire=6h
+type=rpm
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-terra$releasever-nvidia
+repo_gpgcheck=1
+enabled=1
+priority=80
+```
+
+<Note>
+  The priority is set to 80, giving NVIDIA packages precedence over Fedora's default graphics stack when both are available.
+</Note>
+
+## Installation
+
+<Steps>
+  <Step title="Enable the repository">
+    Install the Terra NVIDIA release package:
+    
+    ```bash
+    sudo dnf install terra-release-nvidia
+    ```
+  </Step>
+  
+  <Step title="Install NVIDIA drivers">
+    For the latest NVIDIA drivers with DKMS support:
+    
+    ```bash
+    sudo dnf install dkms-nvidia nvidia-driver
+    ```
+    
+    Or for specific kernel modules:
+    
+    ```bash
+    sudo dnf install nvidia-kmod nvidia-driver
+    ```
+  </Step>
+  
+  <Step title="Install additional utilities (optional)">
+    Install NVIDIA settings and other tools:
+    
+    ```bash
+    sudo dnf install nvidia-settings nvidia-persistenced
+    ```
+  </Step>
+  
+  <Step title="Reboot your system">
+    After installation, reboot to load the NVIDIA drivers:
+    
+    ```bash
+    sudo reboot
+    ```
+  </Step>
+  
+  <Step title="Verify installation">
+    After reboot, verify the driver is loaded:
+    
+    ```bash
+    nvidia-smi
+    ```
+    
+    You should see your GPU information and driver version.
+  </Step>
+</Steps>
+
+## Hardware Acceleration
+
+For video acceleration support, install the VA-API driver:
+
+```bash
+sudo dnf install libva-nvidia-driver
+```
+
+This enables hardware-accelerated video decoding in browsers and media players.
+
+## Container Support
+
+For using NVIDIA GPUs with containers (Docker/Podman):
+
+```bash
+sudo dnf install nvidia-container-toolkit
+```
+
+This allows you to use NVIDIA GPUs inside containerized applications.
+
+## Comparison with Other Solutions
+
+| Feature | Terra NVIDIA | negativo17 | Nobara |
+|---------|--------------|------------|--------|
+| Base | negativo17 | Original | Modified |
+| Tarball generation | On-the-fly | Manual | Manual |
+| Hardware compatibility | Enhanced | Standard | Enhanced |
+| Packaging guidelines | Terra | Fedora | Custom |
+
+## Support
+
+If you encounter issues with Terra NVIDIA drivers:
+
+1. File an issue on the [Terra Monorepo](https://github.com/terrapkg/packages/issues)
+2. Include your GPU model and driver version
+3. Attach relevant logs from `dmesg` or `journalctl`
+
+## License
+
+The NVIDIA drivers are licensed under the [NVIDIA Software License](https://www.nvidia.com/content/DriverDownload-March2009/licence.php?lang=us).
+
+<Note>
+  Terra does not modify the actual NVIDIA drivers, only providing a re-packaged version compatible with Ultramarine and Fedora.
+</Note>

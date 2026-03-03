@@ -1,0 +1,483 @@
+---
+title: System Tools
+description: System utilities, drivers, and low-level tools in Terra Packages
+---
+
+Terra Packages provides extensive system-level tools including kernel modules, hardware drivers, system utilities, and performance optimization tools for Fedora systems.
+
+## System Categories
+
+<CardGroup cols={2}>
+  <Card title="Kernel Modules" icon="microchip">
+    NVIDIA drivers, Xbox controllers, and hardware support
+  </Card>
+  <Card title="Hardware Support" icon="laptop">
+    Chromebook, Surface, ASUS, System76 utilities
+  </Card>
+  <Card title="System Performance" icon="gauge-high">
+    Schedulers, power management, optimization
+  </Card>
+  <Card title="Compatibility Layers" icon="wine-glass">
+    Wine, bootc, and system integration
+  </Card>
+</CardGroup>
+
+## NVIDIA Drivers
+
+<Warning>
+  NVIDIA drivers are proprietary and require accepting the NVIDIA license.
+</Warning>
+
+### Current Driver (590.48.01)
+
+<AccordionGroup>
+  <Accordion title="nvidia-driver">
+    **nvidia-driver** - NVIDIA's proprietary display driver
+    
+    ```hcl
+    project "pkg" {
+      rpm {
+        spec = "nvidia-driver.spec"
+      }
+      arches = ["x86_64", "aarch64", "i386"]
+      labels = {
+        subrepo = "nvidia"
+        mock = 1
+        weekly = 3
+      }
+    }
+    ```
+    
+    From the spec file:
+    ```spec
+    Name:           nvidia-driver
+    Version:        590.48.01
+    Release:        4%?dist
+    Summary:        NVIDIA's proprietary display driver
+    Epoch:          3
+    License:        NVIDIA License
+    ExclusiveArch:  %{ix86} x86_64 aarch64
+    ```
+  </Accordion>
+
+  <Accordion title="NVIDIA Components">
+    Complete NVIDIA driver stack:
+    
+    - **nvidia-driver** - Main driver package
+    - **nvidia-kmod** / **dkms-nvidia** - Kernel modules
+    - **nvidia-settings** - Configuration GUI
+    - **nvidia-xconfig** - X server configuration
+    - **nvidia-persistenced** - Persistence daemon
+    - **nvidia-modprobe** - Kernel module loader
+    - **compat-nvidia-repo** - Compatibility repository
+  </Accordion>
+
+  <Accordion title="NVIDIA 580 Beta">
+    Beta driver series (580.x) available:
+    
+    All the same components as stable, versioned for testing:
+    - nvidia-580/nvidia-driver
+    - nvidia-580/nvidia-kmod
+    - nvidia-580/dkms-nvidia
+    - nvidia-580/nvidia-settings
+    - And all other components
+  </Accordion>
+
+  <Accordion title="Additional NVIDIA Tools">
+    - **nvidia-container-toolkit** - NVIDIA container runtime
+    - **libva-nvidia-driver** - VA-API support for NVIDIA
+    - **nvidia-patch** - Patches for unlocking NVENC/NVFBC
+  </Accordion>
+</AccordionGroup>
+
+## GPU Management
+
+<AccordionGroup>
+  <Accordion title="supergfxctl">
+    **supergfxctl** - GPU switching daemon for laptops
+    
+    ```hcl
+    project pkg {
+      arches = ["x86_64"]
+      rpm {
+        spec = "supergfxctl.spec"
+      }
+    }
+    ```
+    
+    Essential for hybrid GPU laptops (NVIDIA Optimus, AMD switchable graphics).
+  </Accordion>
+
+  <Accordion title="asusctl">
+    **asusctl** - Control daemon for ASUS ROG laptops
+    
+    Provides control for:
+    - RGB keyboard lighting
+    - Fan profiles
+    - GPU modes
+    - Performance profiles
+  </Accordion>
+
+  <Accordion title="system76-power">
+    **system76-power** - System76 power management daemon
+    
+    Graphics and power management for System76 laptops and others.
+  </Accordion>
+</AccordionGroup>
+
+## Kernel Modules & Drivers
+
+<Note>
+  Kernel modules are provided in three formats: akmod, dkms, and kmod-common.
+</Note>
+
+### Xbox Controller Support
+
+<AccordionGroup>
+  <Accordion title="xone">
+    **xone** - Linux kernel driver for Xbox One and Series X|S accessories
+    
+    Available in stable and nightly versions, each with:
+    - xone/stable/akmod
+    - xone/stable/dkms  
+    - xone/stable/kmod-common
+    - xone/nightly/* (same variants)
+  </Accordion>
+
+  <Accordion title="xpad-noone">
+    **xpad-noone** - Modified xpad driver without Xbox One support
+    
+    For use with xone driver (prevents conflicts).
+  </Accordion>
+
+  <Accordion title="xpadneo">
+    **xpadneo** - Advanced Xbox wireless controller driver
+    
+    Provides:
+    - Bluetooth support
+    - Rumble/force feedback
+    - Battery reporting
+  </Accordion>
+</AccordionGroup>
+
+### AMD Support
+
+<AccordionGroup>
+  <Accordion title="zenpower3">
+    **zenpower3** - Zen power monitoring
+    
+    CPU temperature and power monitoring for AMD Ryzen.
+  </Accordion>
+
+  <Accordion title="zenmonitor3">
+    **zenmonitor3** - Monitoring application for Ryzen processors
+    
+    GUI for monitoring AMD Ryzen CPU metrics.
+  </Accordion>
+
+  <Accordion title="zenergy">
+    **zenergy** - AMD Zen energy reporting
+    
+    Available as akmod, dkms, and kmod-common.
+  </Accordion>
+
+  <Accordion title="si-cik-amdgpu">
+    **si-cik-amdgpu** - AMDGPU support for older GCN 1.0/2.0 GPUs
+    
+    Enables AMDGPU driver for Sea Islands and Volcanic Islands GPUs.
+  </Accordion>
+</AccordionGroup>
+
+### Network Drivers
+
+- **rtl8821cu** - Realtek 8821CU WiFi driver (akmod, dkms, kmod-common)
+- **broadcom-wl** - Broadcom wireless driver
+- **wl-kmod** - Broadcom wireless kernel module
+
+### Camera Drivers
+
+**ipu6-drivers** - Intel IPU6 camera drivers
+
+Available as akmod, dkms, and kmod-common for Intel Image Processing Unit v6.
+
+### Other Kernel Modules
+
+<AccordionGroup>
+  <Accordion title="v4l2loopback">
+    **v4l2loopback** - Virtual V4L2 loopback device
+    
+    Create virtual video devices for streaming/recording.
+  </Accordion>
+
+  <Accordion title="usbio-drivers">
+    **usbio-drivers** - USB I/O drivers
+    
+    Specialized USB device support.
+  </Accordion>
+</AccordionGroup>
+
+## Hardware-Specific Tools
+
+### Chromebook Support
+
+<AccordionGroup>
+  <Accordion title="Core Chromebook Tools">
+    - **chrultrabook-tools** - Chromebook firmware utilities
+    - **depthcharge-tools** - ChromeOS depthcharge bootloader tools
+    - **cros-keyboard-map** - ChromeOS keyboard mapping
+    - **chromebook-usbc-fix** - USB-C charging fixes
+    - **croskbd** - ChromeOS keyboard daemon
+  </Accordion>
+</AccordionGroup>
+
+### Microsoft Surface
+
+- **surface-dtx-daemon** - Surface detachment daemon for Surface Book
+
+### ASUS Devices
+
+- **asusctl** - ASUS ROG laptop control (mentioned above)
+
+### Intel Hardware
+
+<AccordionGroup>
+  <Accordion title="Camera Support">
+    - **ipu6-camera-hal** - Intel IPU6 camera HAL
+    - **ipu6-drivers** - Kernel drivers (akmod/dkms)
+    - **ivsc-firmware** - Intel Vision Sensing Controller firmware
+  </Accordion>
+
+  <Accordion title="Power Management">
+    **intel-lpmd** - Intel Low Power Mode daemon
+    
+    Power management for modern Intel processors.
+  </Accordion>
+</AccordionGroup>
+
+### Logitech Devices
+
+- **logiops** - Unofficial Logitech MX device driver
+
+### Nintendo Controllers
+
+- **joycond** - Userspace daemon for Nintendo Joy-Con and Pro Controllers
+
+### Wacom Tablets
+
+- **opentabletdriver** - Open source tablet driver
+- **opentabletdriver-nightly** - Nightly builds
+
+### Duet Display
+
+- **duet-quirks** - Quirks for Duet Display devices
+
+## System Schedulers
+
+<Note>
+  SCX (sched_ext) schedulers provide advanced CPU scheduling policies.
+</Note>
+
+<AccordionGroup>
+  <Accordion title="scx-scheds">
+    **scx-scheds** - sched_ext schedulers collection
+    
+    Available in stable and nightly versions.
+    
+    Collection of BPF-based CPU schedulers:
+    - scx_rusty - Load balancing scheduler
+    - scx_lavd - Latency-aware scheduler  
+    - scx_bpfland - Generic BPF scheduler
+    - And more
+  </Accordion>
+
+  <Accordion title="scx-tools">
+    **scx-tools** - Tools for managing sched_ext schedulers
+    
+    Utilities for configuring and monitoring scx schedulers.
+  </Accordion>
+</AccordionGroup>
+
+## Wine & Compatibility
+
+<AccordionGroup>
+  <Accordion title="Wine Variants">
+    Multiple Wine versions available:
+    
+    - **wine-stable** - Stable Wine release
+    - **wine-dev** - Development Wine release  
+    - **wine-staging** - Wine with experimental patches
+  </Accordion>
+
+  <Accordion title="Wine Utilities">
+    - **wine-dxvk** - Vulkan-based D3D implementation
+    - **wineasio** - ASIO driver for Wine
+  </Accordion>
+</AccordionGroup>
+
+## Boot & System Management
+
+<AccordionGroup>
+  <Accordion title="Bootloaders">
+    **limine** - Modern, advanced bootloader
+    
+    Fast, feature-rich bootloader supporting multiple protocols.
+  </Accordion>
+
+  <Accordion title="Package Management">
+    - **packagekit-bootc** - PackageKit for bootable containers
+    - **xbps** - XBPS package manager from Void Linux
+    - **pixi** - Package management tool
+  </Accordion>
+
+  <Accordion title="System Configuration">
+    - **readymade** - System configuration tool (stable and git)
+    - **polycrystal** - System configuration management
+    - **vicinae** - System integration tool
+  </Accordion>
+</AccordionGroup>
+
+## Power & Performance
+
+<AccordionGroup>
+  <Accordion title="Brightness Control">
+    **wluma** - Automatic brightness adjustment for Wayland
+    
+    Webcam-based ambient light detection.
+  </Accordion>
+
+  <Accordion title="Display Management">
+    **v4l2-relayd** - V4L2 relay daemon
+    
+    Stream video devices over network.
+  </Accordion>
+</AccordionGroup>
+
+## Security & Encryption
+
+- **veracrypt** - Disk encryption software
+- **submarine** - Security tool
+
+## Developer Tools
+
+<AccordionGroup>
+  <Accordion title="DeckLink">
+    **decklink** - Blackmagic DeckLink drivers
+    
+    Professional video capture hardware support.
+  </Accordion>
+
+  <Accordion title="System Utilities">
+    - **dfu-programmer** - USB DFU programmer for microcontrollers
+    - **dracut-strip-trigger** - Dracut initramfs optimization
+    - **uutils-coreutils-replace** - Rust coreutils replacement
+  </Accordion>
+</AccordionGroup>
+
+## Scanner Support
+
+- **epsonscan2** - Epson scanner driver and software
+
+## Daemon Management
+
+- **falcond** - Falcon daemon
+- **falcond-profiles** - Falcon daemon profiles
+- **falcond-gui** - GUI for falcond (in apps directory)
+
+## Installation Examples
+
+### Install NVIDIA Drivers
+
+```bash
+sudo dnf install nvidia-driver nvidia-settings
+```
+
+### Install GPU Switching
+
+```bash
+sudo dnf install supergfxctl
+```
+
+### Install Xbox Controller Support
+
+```bash
+sudo dnf install akmod-xone akmod-xpadneo
+```
+
+### Install AMD Monitoring
+
+```bash
+sudo dnf install zenpower3 zenmonitor3
+```
+
+### Install Chromebook Support
+
+```bash
+sudo dnf install chrultrabook-tools depthcharge-tools cros-keyboard-map
+```
+
+### Install SCX Schedulers
+
+```bash
+sudo dnf install scx-scheds-stable scx-tools-stable
+```
+
+### Install Wine
+
+```bash
+sudo dnf install wine-staging wine-dxvk
+```
+
+### Install Tablet Driver
+
+```bash
+sudo dnf install opentabletdriver
+```
+
+## Kernel Module Formats
+
+<Note>
+  Kernel modules are available in multiple formats:
+</Note>
+
+- **akmod** - Automatic kernel module (rebuilds on kernel updates)
+- **dkms** - Dynamic Kernel Module Support
+- **kmod** - Pre-built kernel modules
+
+For most users, **akmod** is recommended as it automatically rebuilds on kernel updates.
+
+## Architecture Support
+
+<Warning>
+  Hardware support varies by architecture:
+  - NVIDIA drivers: x86_64, aarch64, i386
+  - Most kernel modules: Architecture-specific builds
+  - System tools: Typically x86_64, some support aarch64
+</Warning>
+
+## Available System Packages Summary
+
+The system directory contains 100+ packages:
+
+**GPU Drivers**: NVIDIA (stable, 580 beta), AMD, Intel
+
+**Laptop Control**: supergfxctl, asusctl, system76-power
+
+**Kernel Modules**: Xbox controllers (xone, xpadneo, xpad-noone), AMD (zenergy, zenpower3), network (rtl8821cu, broadcom-wl), camera (ipu6), v4l2loopback
+
+**Hardware Support**: Chromebook tools, Surface, Intel camera/power, Logitech, Nintendo controllers, Wacom tablets
+
+**Schedulers**: scx-scheds, scx-tools
+
+**Wine**: Stable, dev, staging, DXVK, ASIO
+
+**Boot/System**: limine, packagekit-bootc, readymade, polycrystal
+
+**Utilities**: wluma, veracrypt, epsonscan2, dfu-programmer, and more
+
+For the complete list, browse the `anda/system/` directory in the source repository.
+
+## See Also
+
+- [Libraries](/packages/libraries) - NVIDIA CUDA libraries
+- [Games](/packages/games) - Gaming-specific system tools
+- [Desktop Environments](/packages/desktop-environments) - Desktop system tools

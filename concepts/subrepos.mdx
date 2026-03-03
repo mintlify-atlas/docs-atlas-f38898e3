@@ -1,0 +1,347 @@
+---
+title: Subrepos
+description: Understanding Terra's subrepo system for package isolation
+---
+
+Terra uses a subrepo (sub-repository) system to organize packages that may conflict with Fedora or require special handling. This allows users to selectively enable only the package sets they need while avoiding conflicts.
+
+## What are subrepos?
+
+Subrepos are separate repository streams within Terra that contain packages requiring isolation from the main repository. Each subrepo has its own repository configuration file and can be enabled or disabled independently.
+
+<Info>
+The main Terra repository contains packages that don't conflict with Fedora and can be safely enabled alongside the base system.
+</Info>
+
+## Available subrepos
+
+Terra provides four subrepos, each serving a specific purpose:
+
+<CardGroup cols={2}>
+  <Card title="Extras" icon="star">
+    Packages that conflict with Fedora packages, such as patched versions or alternative implementations
+  </Card>
+  <Card title="NVIDIA" icon="display">
+    NVIDIA proprietary drivers and CUDA libraries that may conflict with Fedora's driver packages
+  </Card>
+  <Card title="Mesa" icon="cube">
+    Patched and codec-complete Mesa builds with additional optimizations
+  </Card>
+  <Card title="Multimedia" icon="film">
+    Multimedia codecs and tools that may conflict with Fedora packages (work in progress)
+  </Card>
+</CardGroup>
+
+## Repository configuration
+
+Each subrepo is defined in the `terra-release` package spec file and deployed as a separate `.repo` file:
+
+### Main repository
+
+From `anda/terra/release/terra.repo`:
+
+```ini terra.repo
+[terra]
+name=Terra $releasever
+metalink=https://tetsudou.fyralabs.com/metalink?repo=terra$releasever&arch=$basearch
+metadata_expire=6h
+type=rpm
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-terra$releasever
+repo_gpgcheck=1
+enabled=1
+enabled_metadata=1
+countme=1
+```
+
+### Extras subrepo
+
+From `anda/terra/release/terra-extras.repo`:
+
+```ini terra-extras.repo
+[terra-extras]
+name=Terra $releasever (Extras)
+metalink=https://tetsudou.fyralabs.com/metalink?repo=terra$releasever-extras&arch=$basearch
+metadata_expire=6h
+type=rpm
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-terra$releasever-extras
+repo_gpgcheck=1
+enabled=1
+enabled_metadata=1
+countme=1
+priority=150
+```
+
+<Note>
+The `priority=150` setting gives the extras repo a lower priority than the main Terra repository (default priority is 99).
+</Note>
+
+## Installation
+
+Subrepos are installed as separate packages:
+
+<Tabs>
+  <Tab title="Extras">
+    ```bash
+    sudo dnf install terra-release-extras
+    ```
+    
+    Enables packages that may conflict with Fedora, such as patched versions of existing packages.
+  </Tab>
+  
+  <Tab title="NVIDIA">
+    ```bash
+    sudo dnf install terra-release-nvidia
+    ```
+    
+    Enables NVIDIA proprietary drivers and CUDA development tools.
+  </Tab>
+  
+  <Tab title="Mesa">
+    ```bash
+    sudo dnf install terra-release-mesa
+    ```
+    
+    Enables patched Mesa packages with codec support and optimizations.
+  </Tab>
+  
+  <Tab title="Multimedia">
+    ```bash
+    sudo dnf install terra-release-multimedia
+    ```
+    
+    Enables multimedia codec packages (currently work in progress).
+  </Tab>
+</Tabs>
+
+<Warning>
+Extra care and caution may be needed when enabling subrepos, as some packages may conflict with other repositories such as RPM Fusion.
+</Warning>
+
+## Package assignment
+
+Packages are assigned to subrepos using the `subrepo` label in their `anda.hcl` manifest:
+
+### Extras subrepo
+
+From `anda/apps/anki/anda.hcl`:
+
+```hcl
+project pkg {
+	arches = ["x86_64"]
+	rpm {
+		spec = "anki.spec"
+	}
+    labels {
+        subrepo = "extras"
+    }
+}
+```
+
+Anki is in the extras subrepo because it provides a different version than Fedora.
+
+### Multimedia subrepo
+
+From `anda/multimedia/ffmpeg/anda.hcl`:
+
+```hcl
+project pkg {
+    arches = ["x86_64", "aarch64", "i386"]
+    rpm {
+        spec = "ffmpeg.spec"
+        extra_repos = [
+            "https://repos.fyralabs.com/terrarawhide-nvidia",
+            "https://repos.fyralabs.com/terrarawhide-multimedia"
+        ]
+    }
+    labels {
+        updbranch = 1
+        mock = 1
+        subrepo = "multimedia"
+    }
+}
+```
+
+FFmpeg is in the multimedia subrepo with codec support that may conflict with Fedora's package.
+
+### Multiple subrepos example
+
+From `anda/lib/DirectX-Headers/anda.hcl`:
+
+```hcl
+project pkg {
+    arches = ["x86_64", "aarch64", "i386"]
+    rpm {
+        spec = "DirectX-Headers.spec"
+    }
+    labels {
+        mock = 1
+        subrepo = "extras"
+    }
+}
+```
+
+## Subrepo package structure
+
+The `terra-release.spec` file defines all subrepo packages:
+
+```spec terra-release.spec
+Name:           terra-release
+Version:        %{?fedora:%{fedora}}%{?rhel:%{rhel}}
+Release:        2%?dist
+
+Source0:        terra.repo
+Source1:        terra-extras.repo
+Source2:        terra-nvidia.repo
+Source3:        terra-mesa.repo
+Source4:        terra-multimedia.repo
+
+%package extras
+Summary: Release package for Terra Extras
+Requires: terra-gpg-keys
+
+%description extras
+Release package for Terra Extras, which is a repository with packages
+that might cause conflict with Fedora.
+
+%package nvidia
+Summary: Release package for the nvidia subrepo of Terra Extras
+Requires: terra-gpg-keys
+
+%description nvidia
+Release package for the Terra Extras nvidia subrepo, which provides
+nvidia drivers that might cause a conflict with Fedora.
+
+%package mesa
+Summary: Release package for the mesa subrepo of Terra Extras
+Requires: terra-gpg-keys
+
+%description mesa
+Release package for the Terra Extras mesa subrepo, which provides
+a patched and updated version of mesa that might cause a conflict
+with Fedora.
+
+%package multimedia
+Summary: Release package for the multimedia subrepo of Terra Extras
+Requires: terra-gpg-keys
+
+%description multimedia
+Release package for the Terra Extras multimedia subrepo, which provides
+codecs that might cause a conflict with Fedora.
+```
+
+Each subpackage:
+- Installs a separate `.repo` file in `/etc/yum.repos.d/`
+- Requires the `terra-gpg-keys` package for signature verification
+- Can be installed and removed independently
+
+## When to use subrepos
+
+<Steps>
+  <Step title="Identify conflicts">
+    Determine if your package conflicts with or replaces a Fedora package.
+  </Step>
+  
+  <Step title="Choose appropriate subrepo">
+    - Use `extras` for patched versions or alternatives to Fedora packages
+    - Use `nvidia` for NVIDIA-specific drivers and libraries
+    - Use `mesa` for custom Mesa builds
+    - Use `multimedia` for codec-related packages
+  </Step>
+  
+  <Step title="Add subrepo label">
+    Include the appropriate `subrepo` label in your `anda.hcl` manifest.
+  </Step>
+  
+  <Step title="Test installation">
+    Verify the package installs correctly with the subrepo enabled and doesn't break the system.
+  </Step>
+</Steps>
+
+## Repository priorities
+
+Subrepos use different priority levels to control package selection:
+
+<CodeGroup>
+```ini Main repository (priority 99)
+[terra]
+priority=99  # Default, not explicitly set
+```
+
+```ini Extras subrepo (priority 150)
+[terra-extras]
+priority=150  # Lower priority than main
+```
+</CodeGroup>
+
+Lower priority numbers mean higher precedence. The main Terra repository (priority 99) takes precedence over extras (priority 150) when both provide the same package.
+
+<Tip>
+The priority system ensures that subrepo packages are only used when explicitly required, preventing accidental conflicts.
+</Tip>
+
+## Source repositories
+
+Each subrepo also provides a source repository for accessing SRPMs:
+
+```ini terra-extras.repo
+[terra-extras-source]
+name=Terra $releasever (Extras) - Source
+metalink=https://tetsudou.fyralabs.com/metalink?repo=terra$releasever-extras-source&arch=$basearch
+metadata_expire=6h
+type=rpm
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-terra$releasever-extras-source
+repo_gpgcheck=1
+enabled=0
+enabled_metadata=0
+priority=150
+```
+
+Source repositories are disabled by default but can be enabled for package development.
+
+## Best practices
+
+<AccordionGroup>
+  <Accordion title="Document conflicts clearly">
+    When assigning a package to a subrepo, document what it conflicts with and why in the spec file or commit message.
+  </Accordion>
+  
+  <Accordion title="Test with and without subrepos">
+    Verify that your package works correctly when the subrepo is enabled and doesn't break things when disabled.
+  </Accordion>
+  
+  <Accordion title="Use conservative subrepo assignment">
+    Only use subrepos when necessary. Packages that don't conflict should remain in the main repository.
+  </Accordion>
+  
+  <Accordion title="Consider RPM Fusion conflicts">
+    Test subrepo packages alongside RPM Fusion to identify potential conflicts users might encounter.
+  </Accordion>
+  
+  <Accordion title="Monitor multimedia subrepo">
+    The multimedia subrepo is work in progress. Coordinate with maintainers before adding packages.
+  </Accordion>
+</AccordionGroup>
+
+## Migration and obsoletes
+
+The spec file shows how packages handle migrations:
+
+```spec
+%package extras
+Obsoletes: terra-release-extra < 42-3
+Provides: terra-release-extra = %version-%release
+```
+
+This ensures smooth upgrades when package names change.
+
+<CardGroup cols={2}>
+  <Card title="Package manifests" icon="file-code" href="/concepts/package-manifests">
+    Learn how to configure subrepo assignment in anda.hcl
+  </Card>
+  <Card title="Repository structure" icon="folder-tree" href="/concepts/repository-structure">
+    Understand the overall monorepo organization
+  </Card>
+</CardGroup>

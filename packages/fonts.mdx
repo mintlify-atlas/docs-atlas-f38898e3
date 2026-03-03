@@ -1,0 +1,302 @@
+---
+title: Fonts
+description: Font packages available in Terra Packages
+---
+
+Terra Packages provides a curated collection of fonts optimized for programming, design, and multilingual support. All fonts are packaged for easy installation and system-wide availability.
+
+## Font Categories
+
+<CardGroup cols={2}>
+  <Card title="Programming Fonts" icon="code">
+    Monospace fonts optimized for coding
+  </Card>
+  <Card title="Nerd Fonts" icon="icons">
+    Fonts patched with programming glyphs
+  </Card>
+  <Card title="CJK Fonts" icon="language">
+    Chinese, Japanese, and Korean support
+  </Card>
+  <Card title="Design Fonts" icon="pen-nib">
+    Modern fonts for UI and design work
+  </Card>
+</CardGroup>
+
+## Nerd Fonts Collection
+
+<Note>
+  Nerd Fonts patches developer-targeted fonts with a high number of glyphs (icons) for use in terminals and code editors.
+</Note>
+
+### Overview
+
+**nerd-fonts** - Comprehensive collection of icon-patched programming fonts.
+
+The meta-package recommends all available Nerd Fonts variants:
+
+```spec
+Name:           nerd-fonts
+Version:        3.4.0
+License:        OFL-1.1
+URL:            https://nerdfonts.com/
+BuildArch:      noarch
+```
+
+### Available Nerd Fonts
+
+<AccordionGroup>
+  <Accordion title="Popular Programming Fonts">
+    - **0xProto** - Modern monospace font
+    - **CascadiaCode** / **CascadiaMono** - Microsoft's Cascadia family
+    - **FiraCode** / **FiraMono** - Mozilla's Fira family with ligatures
+    - **JetBrainsMono** - JetBrains programming font
+    - **Hack** - Typeface designed for source code
+    - **Iosevka** / **IosevkaTerm** / **IosevkaTermSlab** - Slender monospace
+    - **SourceCodePro** - Adobe's monospace font
+    - **DejaVuSansMono** - Classic DejaVu monospace
+    - **IntelOneMono** - Intel's monospace typeface
+  </Accordion>
+
+  <Accordion title="Retro & Terminal Fonts">
+    - **3270** - IBM 3270 terminal font
+    - **Terminus** - Clean bitmap font
+    - **ProggyClean** - Bitmap programming font
+    - **BigBlueTerminal** - Classic terminal look
+    - **Gohu** - Medium contrast font
+    - **DaddyTimeMono** - Vintage monospace
+  </Accordion>
+
+  <Accordion title="Unique & Stylized Fonts">
+    - **ComicShannsMono** - Comic Sans-inspired monospace
+    - **FantasqueSansMono** - Handwriting-like monospace
+    - **VictorMono** - Cursive italic programming font
+    - **Monaspace** - GitHub's superfamily of fonts
+    - **GeistMono** - Vercel's monospace font
+    - **Monofur** - Fun, rounded monospace
+    - **Monoid** - Minimal, readable monospace
+  </Accordion>
+
+  <Accordion title="Complete Font List">
+    The package includes these variants:
+    
+    0xProto, 3270, Agave, AnonymousPro, Arimo, AurulentSansMono, BigBlueTerminal, BitstreamVeraSansMono, CascadiaCode, CascadiaMono, CodeNewRoman, ComicShannsMono, CommitMono, Cousine, D2Coding, DaddyTimeMono, DejaVuSansMono, DepartureMono, DroidSansMono, EnvyCodeR, FantasqueSansMono, FiraCode, FiraMono, GeistMono, Go-Mono, Gohu, Hack, Hasklig, HeavyData, Hermit, iA-Writer, IBMPlexMono, Inconsolata, InconsolataGo, InconsolataLGC, IntelOneMono, Iosevka, IosevkaTerm, IosevkaTermSlab, JetBrainsMono, Lekton, LiberationMono, Lilex, MartianMono, Meslo, Monaspace, Monofur, Monoid, Mononoki, MPlus, NerdFontsSymbolsOnly, Noto, OpenDyslexic, Overpass, ProFont, ProggyClean, Recursive, RobotoMono, ShareTechMono, SourceCodePro, SpaceMono, Terminus, Tinos, Ubuntu, UbuntuMono, UbuntuSans, VictorMono, ZedMono
+  </Accordion>
+</AccordionGroup>
+
+### Configuration Example
+
+```hcl
+project pkg {
+  arches = ["x86_64"]
+  rpm {
+    spec = "nerd-fonts.spec"
+  }
+  labels {
+    no_upload_srpms = 1
+  }
+}
+```
+
+## Modern Design Fonts
+
+<AccordionGroup>
+  <Accordion title="Geist Font Family">
+    **geist** - Modern font family from Vercel
+    
+    ```hcl
+    project pkg {
+      arches = ["x86_64"]
+      rpm {
+        spec = "geist.spec"
+      }
+    }
+    ```
+    
+    Includes both Geist Sans and Geist Mono variants.
+  </Accordion>
+
+  <Accordion title="Iosevka">
+    **iosevka** - Versatile, slender monospace and sans-serif typeface
+    
+    Highly customizable font family designed for programming.
+  </Accordion>
+
+  <Accordion title="Maple Font">
+    **maple** - Condensed, friendly monospace font
+    
+    Modern programming font with excellent legibility.
+  </Accordion>
+
+  <Accordion title="JuliaMono">
+    **juliamono** - Monospace font for scientific and technical writing
+    
+    Designed specifically for Julia programming language with extensive Unicode support.
+  </Accordion>
+
+  <Accordion title="Manrope">
+    **manrope** - Modern geometric sans-serif font
+    
+    Open-source font designed for digital products.
+  </Accordion>
+</AccordionGroup>
+
+## CJK (Chinese, Japanese, Korean) Fonts
+
+<Note>
+  CJK fonts provide comprehensive character support for East Asian languages.
+</Note>
+
+### Chinese Fonts
+
+<AccordionGroup>
+  <Accordion title="Sarasa Gothic">
+    **sarasa-gothic** - Comprehensive CJK font family
+    
+    Based on Iosevka and Source Han Sans, supporting multiple CJK languages.
+  </Accordion>
+
+  <Accordion title="Traditional Chinese Fonts">
+    - **open-huninn** - Traditional Chinese font with elegant design
+    - **arphic-ukai** - AR PL UKai Traditional Chinese font
+    - **arphic-uming** - AR PL UMing Traditional Chinese font
+  </Accordion>
+
+  <Accordion title="Simplified & Mixed">
+    - **sipa** - Chinese font collection
+    - **mini-wakuwaku** - Playful CJK font
+  </Accordion>
+</AccordionGroup>
+
+### Japanese Fonts
+
+- **kanjistrokeorders** - Kanji stroke order font for learning
+- **seto** - Japanese font with traditional aesthetics
+- **naikai** - Clean Japanese font
+
+### Vietnamese Fonts
+
+- **hannom** - Vietnamese Chu Nom characters font
+
+## Specialty & Bitmap Fonts
+
+### Bitmap Fonts
+
+<AccordionGroup>
+  <Accordion title="Spleen">
+    **spleen** - Monospace bitmap font
+    
+    Clean bitmap font available in multiple sizes, perfect for terminals.
+  </Accordion>
+
+  <Accordion title="Fakepearl">
+    **fakepearl** - Bitmap programming font
+    
+    Crisp bitmap font optimized for code editing.
+  </Accordion>
+</AccordionGroup>
+
+### Gaming & Special Use
+
+- **natrium** - Futuristic display font
+
+## Microsoft Core Fonts
+
+<Warning>
+  These are proprietary Microsoft fonts. Check licensing terms before use.
+</Warning>
+
+- **ms-core** - Microsoft Core Fonts (Arial, Times New Roman, etc.)
+- **ms-core-tahoma** - Microsoft Tahoma font
+- **cleartype** - Microsoft ClearType fonts
+
+## Installation
+
+### Install Nerd Fonts
+
+Install the meta-package for all Nerd Fonts:
+
+```bash
+sudo dnf install nerd-fonts
+```
+
+Or install specific variants:
+
+```bash
+sudo dnf install jetbrainsmono-nerd-fonts
+sudo dnf install firacode-nerd-fonts
+sudo dnf install cascadiacode-nerd-fonts
+```
+
+### Install Programming Fonts
+
+```bash
+sudo dnf install iosevka
+sudo dnf install juliamono
+sudo dnf install geist
+```
+
+### Install CJK Support
+
+```bash
+sudo dnf install sarasa-gothic
+sudo dnf install open-huninn
+```
+
+### Install Design Fonts
+
+```bash
+sudo dnf install manrope
+sudo dnf install geist
+```
+
+## Font Configuration
+
+After installation, fonts are automatically available system-wide. You may need to:
+
+1. Refresh font cache:
+   ```bash
+   fc-cache -fv
+   ```
+
+2. Verify installation:
+   ```bash
+   fc-list | grep "FontName"
+   ```
+
+3. Configure your terminal or editor to use the installed font
+
+## Package Structure
+
+Most font packages follow this structure:
+
+```hcl
+project pkg {
+  arches = ["x86_64"]
+  rpm {
+    spec = "font-name.spec"
+  }
+}
+```
+
+Font packages are typically:
+- Architecture-specific (x86_64)
+- Build architecture: `noarch` (for Nerd Fonts and others)
+- License: OFL-1.1 or similar open font licenses
+
+## Available Fonts Summary
+
+The fonts directory contains 22+ font packages:
+
+- **Programming**: Nerd Fonts collection, Iosevka, JuliaMono, Maple, Geist
+- **CJK**: Sarasa Gothic, Open Huninn, Arphic fonts, Seto, Naikai
+- **Bitmap**: Spleen, Fakepearl
+- **Design**: Manrope, Geist, Natrium
+- **Specialty**: Kanji Stroke Orders, HanNom
+- **Microsoft**: MS Core Fonts, Tahoma, ClearType
+
+For the complete list, browse the `anda/fonts/` directory in the source repository.
+
+## See Also
+
+- [Themes](/packages/themes) - Icon themes and desktop themes
+- [Applications](/packages/applications) - Font management applications

@@ -1,0 +1,646 @@
+---
+title: Testing Packages
+description: Comprehensive guide to testing Terra packages before submission
+---
+
+Testing is critical to ensuring Terra packages work correctly across different systems and configurations. This guide covers local testing, CI/CD validation, and troubleshooting.
+
+## Why Testing Matters
+
+Proper testing prevents:
+
+- Broken packages in the repository
+- Dependency conflicts
+- Runtime failures
+- Security vulnerabilities
+- Wasted maintainer time reviewing broken PRs
+
+<Warning>
+  All packages must pass testing before they can be merged. Untested packages will be rejected.
+</Warning>
+
+## Local Testing Workflow
+
+### Prerequisites
+
+Ensure your testing environment is set up:
+
+```bash
+# Install build tools
+sudo dnf install anda mock rpm-build rpmdevtools
+
+# Add yourself to mock group
+sudo usermod -a -G mock $USER
+newgrp mock
+
+# Install Terra mock configs
+sudo dnf install terra-mock-configs
+```
+
+### Build Testing
+
+<Steps>
+  <Step title="Clean build test">
+    Always test in a clean environment:
+
+    ```bash
+    # Build with anda
+    anda build anda/category/package-name/pkg -c terra-frawhide-x86_64
+    ```
+
+    This simulates the CI build environment.
+  </Step>
+
+  <Step title="Check build output">
+    Verify the build completed successfully:
+
+    ```bash
+    # List generated RPMs
+    ls -lh anda-build/rpm/rpms/x86_64/
+    ls -lh anda-build/rpm/srpm/
+    ```
+
+    You should see:
+    - Binary RPM(s) in `rpms/x86_64/`
+    - Source RPM in `srpm/`
+  </Step>
+
+  <Step title="Inspect package contents">
+    ```bash
+    # List files in the package
+    rpm -qlp anda-build/rpm/rpms/x86_64/package-name-*.rpm
+
+    # Check package metadata
+    rpm -qip anda-build/rpm/rpms/x86_64/package-name-*.rpm
+
+    # Verify dependencies
+    rpm -qRp anda-build/rpm/rpms/x86_64/package-name-*.rpm
+    ```
+  </Step>
+
+  <Step title="Run rpmlint">
+    Check for packaging issues:
+
+    ```bash
+    rpmlint anda-build/rpm/rpms/x86_64/package-name-*.rpm
+    rpmlint anda-build/rpm/srpm/package-name-*.src.rpm
+    ```
+
+    <Note>
+      Some rpmlint warnings are acceptable. Focus on errors and unexpected warnings.
+    </Note>
+  </Step>
+</Steps>
+
+### Installation Testing
+
+<Steps>
+  <Step title="Install the package">
+    ```bash
+    sudo dnf install anda-build/rpm/rpms/x86_64/package-name-*.rpm
+    ```
+
+    Watch for:
+    - Dependency resolution issues
+    - File conflicts
+    - Scriptlet errors
+  </Step>
+
+  <Step title="Verify installation">
+    ```bash
+    # Check package is installed
+    rpm -q package-name
+
+    # List installed files
+    rpm -ql package-name
+
+    # Verify file ownership and permissions
+    rpm -V package-name
+    ```
+  </Step>
+
+  <Step title="Test basic functionality">
+    <CodeGroup>
+    ```bash CLI Tools
+    # Run the command
+    package-name --version
+    package-name --help
+
+    # Test core functionality
+    package-name test-command
+    ```
+
+    ```bash GUI Applications
+    # Launch the application
+    package-name &
+
+    # Or from desktop entry
+    gtk-launch package-name
+    ```
+
+    ```bash Services
+    # Start the service
+    sudo systemctl start package-name
+
+    # Check status
+    sudo systemctl status package-name
+
+    # View logs
+    sudo journalctl -u package-name
+    ```
+
+    ```bash Libraries
+    # Check library linking
+    ldd /usr/bin/dependent-app | grep package
+
+    # Verify library symbols
+    nm -D /usr/lib64/libpackage.so | grep symbol_name
+    ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="Test upgrade path">
+    If updating an existing package:
+
+    ```bash
+    # Install old version first
+    sudo dnf install package-name-1.0.0
+
+    # Upgrade to new version
+    sudo dnf upgrade anda-build/rpm/rpms/x86_64/package-name-1.1.0*.rpm
+
+    # Verify upgrade succeeded
+    rpm -q package-name
+    package-name --version
+    ```
+  </Step>
+
+  <Step title="Test removal">
+    ```bash
+    # Remove the package
+    sudo dnf remove package-name
+
+    # Verify complete removal
+    rpm -q package-name
+
+    # Check for leftover files (should be minimal)
+    find /usr /etc -name "*package-name*" 2>/dev/null
+    ```
+  </Step>
+</Steps>
+
+### Multi-Architecture Testing
+
+If you have access to multiple architectures:
+
+<CodeGroup>
+```bash x86_64
+anda build anda/category/package/pkg -c terra-frawhide-x86_64
+```
+
+```bash aarch64
+anda build anda/category/package/pkg -c terra-frawhide-aarch64
+```
+</CodeGroup>
+
+<Note>
+  CI automatically tests both x86_64 and aarch64. Focus on x86_64 locally unless your package has architecture-specific code.
+</Note>
+
+## Automated CI Testing
+
+When you submit a PR, GitHub Actions automatically runs:
+
+### Build Matrix Generation
+
+The CI determines what changed:
+
+```yaml
+# From .github/workflows/autobuild.yml
+- name: Generate build matrix
+  id: generate_build_matrix
+  run: anda ci >> $GITHUB_OUTPUT
+```
+
+This creates a matrix of:
+- Package(s) to build
+- Architectures (x86_64, aarch64)
+- Build labels (mock, large, etc.)
+
+### Package Building
+
+Each package is built in an isolated container:
+
+```yaml
+container:
+  image: ghcr.io/terrapkg/builder:frawhide
+  options: --cap-add=SYS_ADMIN --privileged
+```
+
+Steps:
+1. Install build dependencies
+2. Build with anda
+3. Generate artifacts
+4. Upload RPMs
+
+### AppStream Generation
+
+For GUI applications, AppStream metadata is generated:
+
+```yaml
+- name: Generate test catalog
+  run: |
+    appstream-builder -v \
+      --packages-dir=artifacts/rpms \
+      --icons-dir=icons \
+      --include-failed \
+      --output-dir=output
+```
+
+<Note>
+  Check the CI summary for AppStream warnings about missing metadata in desktop applications.
+</Note>
+
+## Monitoring CI Builds
+
+### Viewing Build Status
+
+1. Go to your PR on GitHub
+2. Click the "Checks" tab
+3. View build progress for each job
+
+### Understanding CI Output
+
+<Steps>
+  <Step title="Manifest Job">
+    Determines what to build:
+
+    ```json
+    {
+      "pkg": "anda/tools/package/pkg",
+      "arch": "x86_64",
+      "labels": {"mock": "1"}
+    }
+    ```
+  </Step>
+
+  <Step title="Build Jobs">
+    One job per package + architecture:
+
+    - Install Build Dependencies
+    - Build with Andaman  
+    - Upload artifacts
+    - Publish to repository (on push to frawhide)
+  </Step>
+
+  <Step title="AppStream Job">
+    Validates GUI application metadata:
+
+    - Extracts desktop files
+    - Generates AppStream catalog
+    - Reports vetoed packages
+  </Step>
+</Steps>
+
+### Common CI Failures
+
+<AccordionGroup>
+  <Accordion title="Build dependency installation failed">
+    **Cause**: Missing or incorrect BuildRequires
+
+    **Fix**:
+    ```spec
+    # Add missing dependencies
+    BuildRequires:  missing-package-devel
+    ```
+
+    Test locally:
+    ```bash
+    sudo dnf builddep anda/category/package/*.spec
+    ```
+  </Accordion>
+
+  <Accordion title="Build failed with compiler errors">
+    **Cause**: Source incompatibility, missing patches, wrong flags
+
+    **Fix**:
+    - Check upstream build instructions
+    - Add necessary patches
+    - Adjust build flags in %build section
+
+    Test locally with same container:
+    ```bash
+    podman run --rm -it -v $PWD:/work ghcr.io/terrapkg/builder:frawhide bash
+    cd /work
+    dnf builddep -y anda/category/package/*.spec
+    rpmbuild -ba anda/category/package/*.spec
+    ```
+  </Accordion>
+
+  <Accordion title="File not found in %files">
+    **Cause**: File path wrong or file not installed
+
+    **Fix**:
+    ```spec
+    # Debug what was installed
+    %install
+    %make_install
+    find %{buildroot} -type f  # See what's actually there
+    ```
+
+    Update %files to match actual paths.
+  </Accordion>
+
+  <Accordion title="sccache failures">
+    **Cause**: Caching issues with incremental builds
+
+    **Fix**: Disable sccache for this package:
+    ```hcl
+    project pkg {
+      rpm {
+        spec = "package.spec"
+      }
+      labels {
+        sccache = 0
+      }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Architecture-specific failures">
+    **Cause**: Code not portable or missing arch-specific deps
+
+    **Fix**: Add architecture conditionals:
+    ```spec
+    %ifarch x86_64
+    BuildRequires: x86-specific-dep
+    %endif
+
+    %ifarch aarch64  
+    BuildRequires: arm-specific-dep
+    %endif
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Integration Testing
+
+### Testing with Dependent Packages
+
+If your package is a library or dependency:
+
+```bash
+# Install your package
+sudo dnf install anda-build/rpm/rpms/x86_64/your-lib-*.rpm
+
+# Install and test dependent package
+sudo dnf install dependent-package
+dependent-package --test
+```
+
+### Testing in Clean Environment
+
+Use a container or VM:
+
+```bash
+# Test in Fedora container
+podman run -it --rm -v $PWD:/packages fedora:rawhide bash
+
+# Inside container
+dnf install -y /packages/anda-build/rpm/rpms/x86_64/package-*.rpm
+package-name --version
+```
+
+Or use systemd-nspawn:
+
+```bash
+# Create minimal Fedora root
+sudo dnf -y --releasever=rawhide --installroot=/var/lib/machines/test-fedora install systemd dnf
+
+# Boot into it
+sudo systemd-nspawn -D /var/lib/machines/test-fedora
+
+# Test package inside
+```
+
+## Performance Testing
+
+### Build Performance
+
+Monitor build times:
+
+```bash
+# Time the build
+time anda build anda/category/package/pkg -c terra-frawhide-x86_64
+```
+
+For large packages, consider:
+- Enabling parallel builds (`-j%{?_smp_mflags}`)
+- Using faster linkers (mold for Rust/C++)
+- Adding `large = 1` label for bigger runners
+
+### Runtime Performance
+
+Benchmark critical operations:
+
+```bash
+# Example: test command performance
+time package-name benchmark-command
+
+# Compare with upstream builds
+./upstream-binary benchmark-command
+package-name benchmark-command
+```
+
+## Security Testing
+
+### Check Binary Security Features
+
+```bash
+# Check for security hardening
+checksec --file=/usr/bin/package-name
+
+# Should show:
+# RELRO: Full RELRO
+# Stack: Canary found
+# NX: NX enabled  
+# PIE: PIE enabled
+```
+
+### Scan for Vulnerabilities
+
+```bash
+# Scan with rpm-inspector
+rpm-inspector anda-build/rpm/rpms/x86_64/package-*.rpm
+
+# Check dependencies for known issues
+rpm -qR package-name | while read dep; do
+  dnf info "$dep" 2>/dev/null | grep -i security
+done
+```
+
+## Regression Testing
+
+When updating packages:
+
+<Steps>
+  <Step title="Document current behavior">
+    Before updating, note:
+    - Current version and features
+    - Known working use cases
+    - Configuration files and formats
+  </Step>
+
+  <Step title="Test upgrade path">
+    ```bash
+    # Install current version from Terra
+    sudo dnf install package-name
+    
+    # Note version
+    rpm -q package-name
+    
+    # Upgrade to new build
+    sudo dnf upgrade anda-build/rpm/rpms/x86_64/package-*.rpm
+    
+    # Test same use cases
+    ```
+  </Step>
+
+  <Step title="Verify no regressions">
+    - All previous functionality still works
+    - Configuration migrates correctly  
+    - No new warnings or errors
+    - Performance hasn't degraded
+  </Step>
+</Steps>
+
+## Testing Checklist
+
+Before submitting your PR:
+
+### Build Tests
+- [ ] Package builds successfully on x86_64
+- [ ] Package builds successfully on aarch64 (or CI passes)
+- [ ] No rpmlint errors (warnings reviewed)
+- [ ] All files have correct paths and permissions
+- [ ] Source RPM can be rebuilt
+
+### Installation Tests  
+- [ ] Package installs without errors
+- [ ] All dependencies resolve correctly
+- [ ] No file conflicts with other packages
+- [ ] Scriptlets execute successfully
+
+### Functionality Tests
+- [ ] Main program/library works as expected
+- [ ] Help/version commands work (CLI tools)
+- [ ] GUI launches without errors (GUI apps)
+- [ ] Services start and run correctly (daemons)
+- [ ] Configuration files load properly
+
+### Integration Tests
+- [ ] Upgrades from previous version work
+- [ ] Removal cleans up correctly
+- [ ] Dependent packages still work (if library)
+- [ ] No regressions from previous behavior
+
+### Documentation Tests
+- [ ] Man pages display correctly (if included)
+- [ ] README and docs are readable
+- [ ] License files are present
+- [ ] Changelog is updated
+
+## Manual Test Report Template
+
+Include in your PR description:
+
+```markdown
+## Test Results
+
+### Build Environment
+- Fedora version: rawhide
+- Architecture: x86_64
+- anda version: X.Y.Z
+
+### Build Status
+- [x] Clean build successful
+- [x] rpmlint warnings reviewed
+- [x] All files packaged correctly
+
+### Installation Testing
+- [x] Fresh install successful  
+- [x] Upgrade from version X.Y works
+- [x] Removal clean
+
+### Functionality Testing
+- [x] `package-name --version` works
+- [x] Basic usage: [describe what you tested]
+- [x] Advanced usage: [describe what you tested]
+
+### Notes
+- Any warnings or issues observed
+- Workarounds applied
+- Known limitations
+```
+
+## Debugging Failed Tests
+
+### Enable Verbose Output
+
+```bash
+# Build with verbose output
+anda build anda/category/package/pkg -c terra-frawhide-x86_64 --verbose
+
+# Or for spec file debugging
+rpmbuild -ba --verbose anda/category/package/*.spec
+```
+
+### Interactive Build Debugging
+
+```bash
+# Enter build container
+podman run -it --rm -v $PWD:/work ghcr.io/terrapkg/builder:frawhide bash
+
+cd /work/anda/category/package
+
+# Install deps
+dnf builddep -y *.spec
+
+# Try build steps manually
+rpmbuild -bp *.spec  # Just %prep
+rpmbuild -bc *.spec  # %prep and %build
+rpmbuild -bi *.spec  # Through %install
+```
+
+### Check Build Logs
+
+```bash
+# Mock build logs are in
+ls -la /var/lib/mock/terra-frawhide-x86_64/result/
+
+# View build log
+less /var/lib/mock/terra-frawhide-x86_64/result/build.log
+
+# Check root log for dnf issues  
+less /var/lib/mock/terra-frawhide-x86_64/result/root.log
+```
+
+## Getting Help with Testing
+
+If you encounter testing issues:
+
+1. **Check similar packages** - See how similar packages are tested
+2. **Review CI logs** - Often contain helpful error messages
+3. **Ask in community chat** - [Join our chats](https://wiki.ultramarine-linux.org/en/community/community/)
+4. **Search issues** - Someone may have had the same problem
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Package Guidelines" icon="book" href="/contributing/package-guidelines">
+    Review packaging best practices
+  </Card>
+  <Card title="Getting Started" icon="rocket" href="/contributing/getting-started">
+    Back to contribution basics
+  </Card>
+</CardGroup>

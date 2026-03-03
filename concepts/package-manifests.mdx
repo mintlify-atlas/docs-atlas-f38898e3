@@ -1,0 +1,332 @@
+---
+title: Package manifests
+description: Complete guide to the anda.hcl configuration format
+---
+
+Package manifests use the `anda.hcl` format to define how packages are built in Terra. Each package directory contains an `anda.hcl` file that specifies build configuration, architecture support, and package metadata.
+
+## Basic structure
+
+The `anda.hcl` file uses HCL (HashiCorp Configuration Language) syntax with a `project pkg` block:
+
+```hcl anda.hcl
+project pkg {
+    rpm {
+        spec = "package-name.spec"
+    }
+}
+```
+
+This minimal manifest tells Anda to:
+1. Build an RPM package
+2. Use the specified spec file as the build recipe
+3. Build for all supported architectures by default
+
+<Tip>
+Most packages only need this minimal configuration. Add additional settings only when necessary.
+</Tip>
+
+## Architecture support
+
+Restrict which architectures a package builds for using the `arches` array:
+
+```hcl anda.hcl
+project pkg {
+    arches = ["x86_64"]
+    rpm {
+        spec = "discord.spec"
+    }
+}
+```
+
+### Supported architectures
+
+<CardGroup cols={2}>
+  <Card title="x86_64" icon="microchip">
+    64-bit x86 processors (most common)
+  </Card>
+  <Card title="aarch64" icon="microchip">
+    64-bit ARM processors (Raspberry Pi, etc.)
+  </Card>
+  <Card title="i386" icon="microchip">
+    32-bit x86 processors (legacy)
+  </Card>
+</CardGroup>
+
+### Multi-architecture example
+
+From `anda/lib/DirectX-Headers/anda.hcl`:
+
+```hcl anda.hcl
+project pkg {
+    arches = ["x86_64", "aarch64", "i386"]
+    rpm {
+        spec = "DirectX-Headers.spec"
+    }
+    labels {
+        mock = 1
+        subrepo = "extras"
+    }
+}
+```
+
+This builds DirectX-Headers for all three architectures since it's a library that may be needed on different platforms.
+
+## RPM configuration
+
+The `rpm` block configures RPM package building:
+
+### Spec file
+
+The `spec` field is required and points to the RPM spec file:
+
+```hcl
+rpm {
+    spec = "zola.spec"
+}
+```
+
+### Extra repositories
+
+Some packages need additional repositories during the build:
+
+```hcl anda.hcl
+project pkg {
+    arches = ["x86_64", "aarch64", "i386"]
+    rpm {
+        spec = "ffmpeg.spec"
+        extra_repos = [
+            "https://repos.fyralabs.com/terrarawhide-nvidia",
+            "https://repos.fyralabs.com/terrarawhide-multimedia"
+        ]
+    }
+    labels {
+        updbranch = 1
+        mock = 1
+        subrepo = "multimedia"
+    }
+}
+```
+
+This example from `anda/multimedia/ffmpeg/anda.hcl` adds the NVIDIA and multimedia repos to build FFmpeg with full codec support.
+
+<Warning>
+Only add extra repositories when absolutely necessary for build dependencies. This can slow down builds and increase complexity.
+</Warning>
+
+## Labels
+
+Labels provide metadata and control build behavior:
+
+### Subrepo assignment
+
+The `subrepo` label assigns packages to specific subrepos:
+
+```hcl
+labels {
+    subrepo = "extras"
+}
+```
+
+Available subrepos:
+- `extras` - Packages that may conflict with Fedora
+- `nvidia` - NVIDIA driver packages
+- `mesa` - Patched Mesa packages
+- `multimedia` - Multimedia codecs and tools
+
+<Info>
+Packages without a `subrepo` label go into the main Terra repository.
+</Info>
+
+### Mock builds
+
+The `mock` label indicates the package should be built in a clean chroot:
+
+```hcl
+labels {
+    mock = 1
+}
+```
+
+This ensures reproducible builds isolated from the host system.
+
+### Large packages
+
+The `large` label marks packages that require significant build resources:
+
+```hcl anda.hcl
+project pkg {
+    rpm {
+        spec = "coolercontrol.spec"
+    }
+    labels {
+        large = 1
+    }
+}
+```
+
+From `anda/apps/coolercontrol/anda.hcl`, this helps the build system allocate appropriate resources.
+
+### Update branch
+
+The `updbranch` label enables automatic update tracking:
+
+```hcl anda.hcl
+project pkg {
+	arches = ["x86_64"]
+	rpm {
+		spec = "terra-release.spec"
+	}
+	labels {
+		updbranch = 1
+	}
+}
+```
+
+This example from `anda/terra/release/anda.hcl` ensures the terra-release package tracks upstream updates.
+
+## Real-world examples
+
+### Minimal package
+
+Simple tool with no special requirements (`anda/tools/topgrade/anda.hcl`):
+
+```hcl
+project pkg {
+    rpm {
+        spec = "rust-topgrade.spec"
+    }
+}
+```
+
+### Architecture-restricted package
+
+Application only for x86_64 (`anda/devs/neovide/anda.hcl`):
+
+```hcl
+project pkg {
+	arches = ["x86_64"]
+	rpm {
+		spec = "neovide.spec"
+	}
+}
+```
+
+### Subrepo package
+
+Package that conflicts with Fedora (`anda/apps/anki/anda.hcl`):
+
+```hcl
+project pkg {
+	arches = ["x86_64"]
+	rpm {
+		spec = "anki.spec"
+	}
+    labels {
+        subrepo = "extras"
+    }
+}
+```
+
+### Complex build
+
+Multimedia package with dependencies (`anda/multimedia/ffmpeg/anda.hcl`):
+
+```hcl
+project pkg {
+    arches = ["x86_64", "aarch64", "i386"]
+    rpm {
+        spec = "ffmpeg.spec"
+        extra_repos = [
+            "https://repos.fyralabs.com/terrarawhide-nvidia",
+            "https://repos.fyralabs.com/terrarawhide-multimedia"
+        ]
+    }
+    labels {
+        updbranch = 1
+        mock = 1
+        subrepo = "multimedia"
+    }
+}
+```
+
+## Configuration reference
+
+<ParamField path="project pkg" type="block" required>
+  Root project block that defines the package
+</ParamField>
+
+<ParamField path="arches" type="string[]">
+  List of architectures to build for. Defaults to all supported architectures.
+  
+  Options: `x86_64`, `aarch64`, `i386`
+</ParamField>
+
+<ParamField path="rpm" type="block" required>
+  RPM build configuration
+  
+  <Expandable title="rpm fields">
+    <ParamField path="spec" type="string" required>
+      Path to the RPM spec file relative to the package directory
+    </ParamField>
+    
+    <ParamField path="extra_repos" type="string[]">
+      Additional repositories to enable during build
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField path="labels" type="block">
+  Package metadata and build flags
+  
+  <Expandable title="label fields">
+    <ParamField path="subrepo" type="string">
+      Subrepo assignment: `extras`, `nvidia`, `mesa`, or `multimedia`
+    </ParamField>
+    
+    <ParamField path="mock" type="number">
+      Build in clean chroot. Set to `1` to enable.
+    </ParamField>
+    
+    <ParamField path="large" type="number">
+      Mark as large package requiring extra resources. Set to `1` to enable.
+    </ParamField>
+    
+    <ParamField path="updbranch" type="number">
+      Enable automatic update tracking. Set to `1` to enable.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+## Best practices
+
+<AccordionGroup>
+  <Accordion title="Keep it simple">
+    Start with the minimal manifest and only add configuration as needed. Most packages don't need architecture restrictions or labels.
+  </Accordion>
+  
+  <Accordion title="Match spec file names">
+    Name your spec file after the source package name for consistency. Use the `rust-` prefix for Rust crates.
+  </Accordion>
+  
+  <Accordion title="Use subrepos appropriately">
+    Only assign packages to subrepos if they genuinely conflict with Fedora packages or require special handling.
+  </Accordion>
+  
+  <Accordion title="Document extra repos">
+    If you need `extra_repos`, add a comment explaining why those specific repos are required.
+  </Accordion>
+  
+  <Accordion title="Test architecture builds">
+    If restricting architectures, verify that the package actually fails on other architectures or has arch-specific dependencies.
+  </Accordion>
+</AccordionGroup>
+
+<CardGroup cols={2}>
+  <Card title="Repository structure" icon="folder-tree" href="/concepts/repository-structure">
+    Learn about the monorepo organization
+  </Card>
+  <Card title="Subrepos" icon="split" href="/concepts/subrepos">
+    Understand the subrepo system
+  </Card>
+</CardGroup>

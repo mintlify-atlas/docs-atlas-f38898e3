@@ -1,0 +1,321 @@
+---
+title: Development Tools
+description: Programming languages, editors, and development utilities in Terra Packages
+---
+
+Terra Packages offers a comprehensive collection of modern development tools, from code editors and terminal emulators to language runtimes and build tools.
+
+## Development Categories
+
+<CardGroup cols={2}>
+  <Card title="Code Editors" icon="code">
+    VSCodium, Zed, Neovide, and more
+  </Card>
+  <Card title="Terminal Emulators" icon="terminal">
+    Ghostty, Rio, and other modern terminals
+  </Card>
+  <Card title="Language Runtimes" icon="rocket">
+    Bun, Deno, PowerShell, and Flutter
+  </Card>
+  <Card title="Build Tools" icon="hammer">
+    sccache, Tracy profiler, and utilities
+  </Card>
+</CardGroup>
+
+## Modern Code Editors
+
+<AccordionGroup>
+  <Accordion title="Zed Editor">
+    **zed** - High-performance, multiplayer code editor from the creators of Atom.
+    
+    Available in three channels:
+    - **zed-stable** - Stable release
+    - **zed-preview** - Preview/beta builds
+    - **zed-nightly** - Nightly builds
+    
+    ```hcl
+    project pkg {
+      rpm {
+        spec = "zed.spec"
+      }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="VSCodium">
+    **codium** - Free/Libre Open Source Software Binaries of VS Code
+    
+    With marketplace support:
+    - **codium-marketplace** - Extension marketplace integration
+    
+    VSCodium provides the same features as VS Code without Microsoft's telemetry.
+  </Accordion>
+
+  <Accordion title="Neovim Extensions">
+    **neovide** - No-nonsense Neovim GUI
+    
+    A graphical user interface for Neovim with smooth animations and modern features.
+  </Accordion>
+
+  <Accordion title="Other Editors">
+    - **micro** - Modern and intuitive terminal-based text editor
+    - **edit** - Simple text editor
+  </Accordion>
+</AccordionGroup>
+
+## Terminal Emulators
+
+<Note>
+  Terra Packages focuses on modern, GPU-accelerated terminal emulators.
+</Note>
+
+### Ghostty
+
+**ghostty** - Fast, native terminal emulator written in Zig.
+
+Available versions:
+- **ghostty-stable** - Stable release channel
+- **ghostty-nightly** - Nightly builds with latest features
+
+From the spec file:
+
+```spec
+Name:           ghostty
+Version:        1.2.3
+Summary:        A fast, native terminal emulator written in Zig.
+License:        MIT AND MPL-2.0 AND OFL-1.1
+URL:            https://ghostty.org/
+
+BuildRequires:  zig >= 0.14.0
+BuildRequires:  gtk4-devel
+BuildRequires:  libadwaita-devel
+BuildRequires:  pkgconfig(fontconfig)
+BuildRequires:  pkgconfig(harfbuzz)
+```
+
+### Rio Terminal
+
+**rio** - Hardware-accelerated terminal emulator written in Rust.
+
+## Language Runtimes
+
+<CardGroup cols={2}>
+  <Card title="JavaScript Runtimes" icon="js">
+    Modern alternatives to Node.js
+  </Card>
+  <Card title="Mobile Development" icon="mobile">
+    Flutter and Android tools
+  </Card>
+</CardGroup>
+
+### JavaScript/TypeScript
+
+<AccordionGroup>
+  <Accordion title="Bun">
+    **bun** - Fast all-in-one JavaScript runtime
+    
+    ```hcl
+    project pkg {
+      rpm {
+        spec = "bun-bin.spec"
+      }
+    }
+    ```
+    
+    Bun is a fast JavaScript runtime, package manager, test runner, and bundler all in one.
+  </Accordion>
+
+  <Accordion title="Deno">
+    **deno** - Secure runtime for JavaScript and TypeScript
+    
+    Modern JavaScript/TypeScript runtime with built-in security and tooling.
+  </Accordion>
+
+  <Accordion title="Node Version Managers">
+    - **yarn-berry** - Modern Yarn package manager (v2+)
+    - **asdf** - Version manager for multiple languages
+  </Accordion>
+</AccordionGroup>
+
+### Mobile Development
+
+<AccordionGroup>
+  <Accordion title="Flutter">
+    **flutter** - Google's UI toolkit for building natively compiled applications
+    
+    Cross-platform development framework for mobile, web, and desktop.
+  </Accordion>
+
+  <Accordion title="Android Studio">
+    Available in two channels:
+    - **android-studio-stable** - Stable release
+    - **android-studio-canary** - Canary/preview builds
+    
+    Official IDE for Android development.
+  </Accordion>
+</AccordionGroup>
+
+### Other Languages
+
+- **powershell** - PowerShell for Linux
+- **flow** - Flow type checker for JavaScript
+
+## Build Tools & Utilities
+
+### Compilation & Caching
+
+<AccordionGroup>
+  <Accordion title="sccache">
+    **sccache** - Shared compilation cache
+    
+    Compiler cache similar to ccache but supports additional compilers and languages including Rust.
+  </Accordion>
+
+  <Accordion title="Tracy Profiler">
+    **tracy** - Real-time, nanosecond resolution frame profiler
+    
+    Advanced profiling tool for game and application development.
+  </Accordion>
+</AccordionGroup>
+
+### Database Tools
+
+- **kvrocks** - Distributed key-value NoSQL database compatible with Redis protocol
+
+### Version Control
+
+- **yadm** - Yet Another Dotfiles Manager
+- **git-biance** - Git utilities
+- **backport** - Tool for backporting commits
+
+## Development Utilities
+
+### Monitoring & System Tools
+
+- **tmon** - Terminal-based monitoring tool
+- **lowfi** - Low-fidelity audio player for focus music
+
+### Container & Cloud Development
+
+- **devpod** - Client-only tool to create reproducible developer environments
+
+### Package Management
+
+- **asar** - Electron archive utility
+- **create-tauri-app** - Scaffolding tool for Tauri apps
+
+### Shell Enhancements
+
+- **zsh-autocomplete** - Real-time type-ahead completion for Zsh
+
+### API & HTTP Tools
+
+- **atac** - API testing and HTTP client
+
+### Creative Development
+
+<AccordionGroup>
+  <Accordion title="TurboWarp">
+    **turbowarp** - Fast Scratch-compatible editor and runtime
+    
+    Enhanced version of Scratch with compiler and additional features.
+  </Accordion>
+
+  <Accordion title="UI Design">
+    **shibuya** - Design tool for developers
+  </Accordion>
+</AccordionGroup>
+
+### Text Processing
+
+- **bat-extras** - Enhanced bat command utilities
+
+## Package Configuration Examples
+
+### Binary Package
+
+Example from Bun:
+
+```hcl
+project pkg {
+  rpm {
+    spec = "bun-bin.spec"
+  }
+}
+```
+
+### Source Build
+
+Example from Ghostty:
+
+```hcl
+project pkg {
+  rpm {
+    spec = "ghostty.spec"
+  }
+}
+```
+
+With Zig build requirements:
+
+```spec
+BuildRequires:  anda-srpm-macros >= 0.2.15
+BuildRequires:  zig >= 0.14.0
+BuildRequires:  zig-rpm-macros
+BuildRequires:  pandoc-cli
+BuildRequires:  pkgconfig(blueprint-compiler)
+```
+
+## Installation Examples
+
+### Install Modern Editor Stack
+
+```bash
+sudo dnf install zed-stable codium
+```
+
+### Install JavaScript Development Tools
+
+```bash
+sudo dnf install bun deno nodejs
+```
+
+### Install Terminal Emulator
+
+```bash
+sudo dnf install ghostty-stable
+```
+
+### Install Mobile Development
+
+```bash
+sudo dnf install flutter android-studio-stable
+```
+
+## Architecture Support
+
+<Warning>
+  Most development tools are x86_64 only. Check individual package specifications for multi-architecture support.
+</Warning>
+
+Some packages like Deno and Bun may have limited architecture support depending on upstream releases.
+
+## Available Packages Summary
+
+The devs directory contains 35+ packages including:
+
+- **Editors**: zed, codium, neovide, micro, edit
+- **Terminals**: ghostty, rio
+- **Runtimes**: bun, deno, powershell, flutter
+- **Tools**: sccache, tracy, tmon, kvrocks
+- **Utilities**: yadm, git-biance, backport, devpod
+- **Shell**: zsh-autocomplete
+- **API Tools**: atac
+- **Creative**: turbowarp, shibuya
+
+For the complete list, browse the `anda/devs/` directory in the source repository.
+
+## See Also
+
+- [Libraries](/packages/libraries) - Development libraries and frameworks
+- [System Tools](/packages/system-tools) - System-level development tools

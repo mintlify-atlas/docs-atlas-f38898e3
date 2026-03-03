@@ -1,0 +1,226 @@
+---
+title: Installation
+description: Install Terra on Fedora or Enterprise Linux systems
+---
+
+Terra provides repositories for both Fedora and Enterprise Linux 10. Choose your installation method based on your operating system.
+
+<Note>
+  For the most up-to-date installation instructions, visit our [developer documentation](https://developer.fyralabs.com/terra/installing).
+</Note>
+
+## Fedora installation
+
+<Steps>
+  <Step title="Install the base repository">
+    Choose the installation method based on your Fedora edition.
+
+    ### Standard Fedora
+
+    Run this command to install the Terra repository:
+
+    ```bash
+    sudo dnf install --nogpgcheck --repofrompath 'terra,https://repos.fyralabs.com/terra$releasever' terra-release
+    ```
+
+    ### Immutable/Atomic editions
+
+    If you're using Fedora Silverblue, Kinoite, or other atomic editions, use these commands instead:
+
+    ```bash
+    curl -fsSL https://github.com/terrapkg/subatomic-repos/raw/main/terra.repo | pkexec tee /etc/yum.repos.d/terra.repo
+    sudo rpm-ostree install terra-release
+    ```
+
+    <Warning>
+      On atomic editions, you'll need to reboot after installing `terra-release` for changes to take effect.
+    </Warning>
+  </Step>
+
+  <Step title="Install optional subrepos (optional)">
+    Terra provides specialized subrepos for different use cases. Install the ones you need:
+
+    <AccordionGroup>
+      <Accordion title="Extras - Patched and alternative packages">
+        The Extras subrepo contains packages that conflict with Fedora packages in some way, such as patched versions of the same package.
+
+        ```bash
+        sudo dnf install terra-release-extras
+        ```
+
+        <Warning>
+          Extra care and caution may be needed as some of these packages may conflict with other repositories such as RPM Fusion.
+        </Warning>
+      </Accordion>
+
+      <Accordion title="Mesa - Codec-complete Mesa">
+        Install a patched and codec-complete Mesa for enhanced multimedia support.
+
+        ```bash
+        sudo dnf install terra-release-mesa
+        ```
+
+        <Note>
+          This will replace your system's Mesa installation with Terra's patched version.
+        </Note>
+      </Accordion>
+
+      <Accordion title="NVIDIA - NVIDIA drivers">
+        Get NVIDIA drivers directly from Terra.
+
+        ```bash
+        sudo dnf install terra-release-nvidia
+        ```
+      </Accordion>
+
+      <Accordion title="Multimedia - Work in progress">
+        Access multimedia packages in Terra. This repository is currently considered a work in progress.
+
+        ```bash
+        sudo dnf install terra-release-multimedia
+        ```
+
+        <Warning>
+          This subrepo is still under development and may have stability issues.
+        </Warning>
+      </Accordion>
+    </AccordionGroup>
+  </Step>
+
+  <Step title="Update your system">
+    After installing Terra, update your package cache:
+
+    <CodeGroup>
+      ```bash Standard Fedora
+      sudo dnf update
+      ```
+
+      ```bash Atomic editions
+      sudo rpm-ostree update
+      ```
+    </CodeGroup>
+  </Step>
+</Steps>
+
+## Enterprise Linux installation
+
+<Note>
+  Only EL10 is supported. Not all packages available in Terra are available in Terra EL at this time.
+</Note>
+
+<Steps>
+  <Step title="Install EPEL repositories">
+    Terra EL requires the EPEL (Extra Packages for Enterprise Linux) repositories:
+
+    ```bash
+    sudo dnf install 'https://dl.fedoraproject.org/pub/epel/epel-release-latest-$releasever.noarch.rpm'
+    ```
+
+    This command will automatically detect your EL version and install the appropriate EPEL release.
+  </Step>
+
+  <Step title="Install Terra EL">
+    Install the Terra repository for Enterprise Linux:
+
+    ```bash
+    sudo dnf install --nogpgcheck --repofrompath 'terra,https://repos.fyralabs.com/terrael$releasever' terra-release
+    ```
+  </Step>
+
+  <Step title="Update your system">
+    Refresh your package cache:
+
+    ```bash
+    sudo dnf update
+    ```
+  </Step>
+</Steps>
+
+## Repository configuration
+
+Terra uses a metalink-based repository configuration for optimal performance and reliability. The main repository configuration looks like this:
+
+```ini terra.repo
+[terra]
+name=Terra $releasever
+metalink=https://tetsudou.fyralabs.com/metalink?repo=terra$releasever&arch=$basearch
+metadata_expire=6h
+type=rpm
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-terra$releasever
+repo_gpgcheck=1
+enabled=1
+enabled_metadata=1
+countme=1
+```
+
+<Accordion title="Understanding the configuration">
+  - **metalink**: Uses Tetsudou (Fyra Labs' mirror manager) to select the best mirror for you
+  - **metadata_expire**: Repository metadata is refreshed every 6 hours
+  - **gpgcheck**: All packages are cryptographically verified for security
+  - **repo_gpgcheck**: Repository metadata is also verified
+  - **countme**: Anonymous usage statistics to help prioritize mirror resources
+</Accordion>
+
+## Verify installation
+
+Confirm that Terra is properly installed:
+
+```bash
+dnf repolist | grep terra
+```
+
+You should see `terra` in the list of enabled repositories. If you installed subrepos, you'll also see `terra-extras`, `terra-mesa`, `terra-nvidia`, or `terra-multimedia`.
+
+## What's next?
+
+<CardGroup cols={2}>
+  <Card
+    title="Quick start guide"
+    icon="rocket"
+    href="/quickstart"
+  >
+    Learn how to install and use packages from Terra
+  </Card>
+  <Card
+    title="Browse packages"
+    icon="magnifying-glass"
+    href="https://fedora.pkgs.org/rawhide/terra/"
+  >
+    Search for available packages
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="GPG signature verification failed">
+    If you encounter GPG errors, the repository GPG keys may not be properly installed. Try reinstalling `terra-release`:
+
+    ```bash
+    sudo dnf reinstall terra-release
+    ```
+  </Accordion>
+
+  <Accordion title="Conflicts with RPM Fusion">
+    Some packages in Terra (especially in the Extras subrepo) may conflict with RPM Fusion packages. You may need to adjust repository priorities or exclude specific packages.
+
+    To set a lower priority for Terra Extras:
+
+    ```bash
+    sudo dnf config-manager --setopt=terra-extras.priority=150 --save
+    ```
+  </Accordion>
+
+  <Accordion title="Atomic edition changes not applying">
+    On Fedora Silverblue, Kinoite, and other atomic editions, remember to reboot after installing or updating packages:
+
+    ```bash
+    sudo systemctl reboot
+    ```
+  </Accordion>
+</AccordionGroup>
+
+<Note>
+  Need help? Join our [community chat](https://wiki.ultramarine-linux.org/en/community/community/) for support.
+</Note>

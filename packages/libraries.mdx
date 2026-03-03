@@ -1,0 +1,388 @@
+---
+title: Libraries
+description: Development libraries and runtime dependencies in Terra Packages
+---
+
+Terra Packages maintains an extensive collection of libraries covering multimedia codecs, NVIDIA CUDA tools, graphics libraries, and specialized development frameworks not available in standard Fedora repositories.
+
+## Library Categories
+
+<CardGroup cols={2}>
+  <Card title="Multimedia Codecs" icon="film">
+    Video encoding, decoding, and processing
+  </Card>
+  <Card title="NVIDIA CUDA" icon="microchip">
+    CUDA libraries and development tools
+  </Card>
+  <Card title="Graphics Libraries" icon="image">
+    Mesa, rendering, and graphics APIs
+  </Card>
+  <Card title="Desktop Libraries" icon="window-restore">
+    Qt, GTK, and desktop component libraries
+  </Card>
+</CardGroup>
+
+## Multimedia Libraries
+
+<Note>
+  Many multimedia libraries are built for the `multimedia` subrepo with patent-encumbered codecs.
+</Note>
+
+### Core Codecs
+
+<AccordionGroup>
+  <Accordion title="openh264">
+    **openh264** - Open Source H.264 codec from Cisco
+    
+    ```hcl
+    project pkg {
+      arches = ["x86_64", "aarch64", "i386"]
+      rpm {
+        spec = "openh264.spec"
+      }
+      labels {
+        subrepo = "multimedia"
+        mock = 1
+        updbranch = 1
+      }
+    }
+    ```
+    
+    From the spec file:
+    ```spec
+    Name:           openh264
+    Version:        2.6.0
+    Epoch:          1
+    Summary:        Open Source H.264 Codec
+    License:        BSD
+    URL:            https://www.openh264.org/
+    
+    %package devel
+    Summary:    Development files for %{name}
+    
+    %package -n mozilla-%{name}
+    Summary:    H.264 codec support for Mozilla browsers
+    ```
+  </Accordion>
+
+  <Accordion title="fdk-aac">
+    **fdk-aac** - Fraunhofer FDK AAC codec library
+    
+    ```hcl
+    project pkg {
+      arches = ["x86_64", "aarch64", "i386"]
+      rpm {
+        spec = "fdk-aac.spec"
+      }
+      labels {
+        mock = 1
+        subrepo = "multimedia"
+        weekly = 1
+      }
+    }
+    ```
+    
+    High-quality AAC encoder/decoder used by ffmpeg and other multimedia applications.
+  </Accordion>
+
+  <Accordion title="Chinese Video Codecs">
+    - **xavs** - AVS video encoder
+    - **xavs2** - AVS2 video encoder  
+    - **davs2** - AVS2 decoder
+    - **uavs3d** - AVS3 decoder
+    
+    Support for Chinese AVS video coding standards.
+  </Accordion>
+
+  <Accordion title="HEVC & Advanced Codecs">
+    - **libde265** - H.265/HEVC decoder
+    - **kvazaar** - HEVC/H.265 encoder
+    - **vvdec** - VVC (H.266) decoder
+    - **vvenc** - VVC (H.266) encoder
+    - **xeve** - eXtra-fast Essential Video Encoder
+    - **xevd** - eXtra-fast Essential Video Decoder
+  </Accordion>
+
+  <Accordion title="Other Codecs">
+    - **vo-aacenc** - VisualOn AAC encoder
+    - **LCEVCdec** - MPEG-5 LCEVC decoder
+  </Accordion>
+</AccordionGroup>
+
+### Audio Libraries
+
+- **lsp-dsp** - LSP (Linux Studio Plugins) DSP library
+- **libfreeaptx** - Free aptX codec implementation
+- **sndio** - Small audio and MIDI framework
+- **rtaudio** - Cross-platform audio I/O library
+- **vgmstream** - Video game music stream library
+
+### Streaming & Network
+
+- **rtmpdump** - RTMP streaming library
+
+## NVIDIA CUDA Ecosystem
+
+<Warning>
+  NVIDIA CUDA packages require NVIDIA GPUs and proprietary drivers.
+</Warning>
+
+### Core CUDA Libraries
+
+<AccordionGroup>
+  <Accordion title="cuda">
+    **cuda** - Meta-package for NVIDIA CUDA Toolkit
+    
+    Includes compiler, libraries, and development tools.
+  </Accordion>
+
+  <Accordion title="Runtime Libraries">
+    - **cuda-cudart** - CUDA Runtime API
+    - **cuda-nvrtc** - CUDA Runtime Compilation
+    - **cuda-nvml** - NVIDIA Management Library
+    - **cuda-cupti** - CUDA Profiling Tools Interface
+  </Accordion>
+
+  <Accordion title="Math Libraries">
+    - **libcublas** - CUDA Basic Linear Algebra Subroutines
+    - **libcufft** - CUDA Fast Fourier Transform
+    - **libcurand** - CUDA Random Number Generation
+    - **libcusolver** - CUDA Linear Solver
+    - **libcusparse** - CUDA Sparse Matrix
+    - **libcusparselt** - CUDA Sparse Matrix (Lightweight)
+    - **libnpp** - NVIDIA Performance Primitives
+  </Accordion>
+
+  <Accordion title="Deep Learning & AI">
+    - **cuda-cudnn** - CUDA Deep Neural Network library
+    - **libnvjpeg** - NVIDIA JPEG decoder
+    - **libnvjpeg2k** - NVIDIA JPEG 2000 decoder
+  </Accordion>
+
+  <Accordion title="Development Tools">
+    - **cuda-gdb** - CUDA debugger
+    - **cuda-profiler** - CUDA profiler
+    - **cuda-sanitizer** - Memory error detector
+    - **cuda-nvprof** - CUDA profiler
+    - **cuda-nvdisasm** - CUDA disassembler
+    - **cuda-nvprune** - CUDA binary pruner
+  </Accordion>
+
+  <Accordion title="Compiler & Headers">
+    - **cuda-cccl** - CUDA C++ Core Libraries
+    - **libnvvm** - NVVM IR compiler
+    - **libnvptxcompiler-devel** - PTX compiler
+    - **libnvjitlink** - JIT linker
+    - **libnvfatbin** - Fat binary tools
+    - **nv-codec-headers** - FFmpeg codec headers
+  </Accordion>
+
+  <Accordion title="Specialized Libraries">
+    - **libcufile** - GPU Direct Storage
+    - **libcudla** - Deep Learning Accelerator
+    - **libnvidia-container** - Container runtime library
+    - **cuda-culibos** - CUDA OS library
+    - **cuda-cuobjdump** - Object dumper
+    - **cuda-cuxxfilt** - C++ symbol demangler
+    - **cuda-nvtx** - NVIDIA Tools Extension
+    - **cuda-sandbox** - CUDA sandbox
+  </Accordion>
+</AccordionGroup>
+
+## Graphics Libraries
+
+### Mesa & Drivers
+
+<AccordionGroup>
+  <Accordion title="mesa">
+    **mesa** - Mesa graphics libraries
+    
+    Open-source OpenGL, Vulkan, and other graphics API implementations.
+  </Accordion>
+
+  <Accordion title="mesa-compat">
+    **mesa-compat** - Mesa compatibility libraries
+    
+    Compatibility layer for applications requiring specific Mesa versions.
+  </Accordion>
+</AccordionGroup>
+
+### Graphics APIs & Tools
+
+- **DirectX-Headers** - DirectX headers for Linux
+- **directxshadercompiler** - DirectX Shader Compiler
+- **ShivaVG** - OpenVG implementation
+- **glewmx** - OpenGL Extension Wrangler (MX version)
+- **scenefx** - Scene effects library for wlroots
+- **terra-glfw** - Terra-customized GLFW builds
+
+### Camera & Imaging
+
+- **ipu6-camera-bins** - Intel IPU6 camera binaries
+- **ipu6-camera-hal** - Intel IPU6 camera HAL (in system packages)
+
+## Qt & Desktop Libraries
+
+### Qt5 Libraries
+
+<AccordionGroup>
+  <Accordion title="Qt5 Extensions">
+    - **qt5-qtsystems** - Qt Systems module
+    - **qt5-pim** - Qt Personal Information Management
+    - **qt5-qtdbustest** - Qt DBus testing utilities
+  </Accordion>
+
+  <Accordion title="Qt Utilities">
+    - **qtdbusmock** - Qt DBus mocking library
+    - **qofono** - Qt oFono bindings
+    - **qmenumodel** - Qt menu model
+    - **qdjango** - Django-like Qt web framework
+  </Accordion>
+</AccordionGroup>
+
+### Desktop Component Libraries
+
+- **libhelium** - Helium desktop library
+- **libbismuth** - Bismuth window management library  
+- **libayatana-common** - Ayatana common library
+- **rda** - Remote Desktop Awareness
+
+### Lomiri/Unity Libraries
+
+- **libusermetrics** - User metrics library
+- **properties-cpp-devel** - C++ properties library
+- **process-cpp** - C++ process management
+- **grail** - Gesture recognition library
+- **geis** - Gesture subscription library
+- **gmenuharness** - Menu testing harness
+- **deviceinfo** - Device information library
+- **cmake-extras** - Extra CMake modules
+
+## Development Frameworks
+
+### Application Frameworks
+
+<AccordionGroup>
+  <Accordion title="Wails">
+    - **wails-v2** - Build desktop apps using Go and web technologies (v2)
+    - **wails-v3** - Wails version 3
+  </Accordion>
+
+  <Accordion title="AppImage">
+    - **libappimage** - AppImage core library
+    - **libappimageupdate** - AppImage update library
+    - **zsync2** - zsync implementation for AppImage updates
+  </Accordion>
+
+  <Accordion title="Astal">
+    - **astal** - Widget toolkit for building desktop shells
+    - **astal-gtk** - GTK bindings for Astal  
+    - **ags** - Astal widget examples and templates
+  </Accordion>
+</AccordionGroup>
+
+### Utility Libraries
+
+<AccordionGroup>
+  <Accordion title="Data Structures & Parsing">
+    - **glaze** - JSON and binary serialization library
+    - **clay** - UI layout library
+    - **quickjs-ng** - JavaScript engine
+    - **cmark-gfm** - GitHub Flavored Markdown parser
+  </Accordion>
+
+  <Accordion title="Argument Parsing">
+    - **args-hxx** - C++ argument parser
+    - **argagg** - C++ argument aggregator
+  </Accordion>
+
+  <Accordion title="System Libraries">
+    - **sdbus-cpp** - High-level C++ D-Bus library
+    - **libfiber** - Fiber/coroutine library
+    - **inputtino** - Input library for gaming
+    - **breakpad** - Crash reporting library
+    - **backtrace** - Backtrace library
+    - **dotherside** - C language library for QML
+  </Accordion>
+</AccordionGroup>
+
+### Specialized Libraries
+
+- **tdlib** - Telegram Database Library
+- **libfprint-tod** - Fingerprint reader library (Touch OEM Drivers)
+- **apparmor** - AppArmor security library
+- **dwarfs** - Fast high-compression read-only file system
+- **geonames** - GeoNames database library
+- **audec** - Audio decoder library
+- **lovely-injector** - DLL injection library
+- **zlib** - Compression library (custom build)
+
+## Installation Examples
+
+### Install Multimedia Codecs
+
+```bash
+sudo dnf install openh264 fdk-aac libde265
+```
+
+### Install CUDA Development
+
+```bash
+sudo dnf install cuda cuda-cudnn libcublas
+```
+
+### Install Graphics Development
+
+```bash
+sudo dnf install mesa-devel DirectX-Headers
+```
+
+### Install Qt5 Development
+
+```bash
+sudo dnf install qt5-qtsystems-devel qt5-pim-devel
+```
+
+## Architecture Support
+
+<Note>
+  Library architecture support varies:
+  - **Multimedia libs**: Usually x86_64, aarch64, i386
+  - **CUDA libs**: x86_64, aarch64
+  - **Graphics libs**: x86_64, aarch64
+  - **Qt/Desktop libs**: Typically x86_64
+</Note>
+
+## Development Packages
+
+Most libraries provide `-devel` packages with headers and development files:
+
+```bash
+sudo dnf install openh264-devel
+sudo dnf install libhelium-devel
+sudo dnf install sdbus-cpp-devel
+```
+
+## Available Libraries Summary
+
+The lib directory contains 100+ packages organized by function:
+
+**Multimedia**: openh264, fdk-aac, x264, x265, libde265, kvazaar, codecs
+
+**NVIDIA**: Complete CUDA toolkit, cuDNN, NPP, cuBLAS, specialized compute libraries
+
+**Graphics**: Mesa, DirectX tools, OpenGL/Vulkan support
+
+**Desktop**: Qt5 extensions, Lomiri/Unity libraries, desktop components
+
+**Development**: Wails, AppImage tools, Astal, parsing libraries
+
+**System**: D-Bus, security, compression, specialized utilities
+
+For the complete list, browse the `anda/lib/` directory in the source repository.
+
+## See Also
+
+- [Multimedia](/packages/multimedia) - Multimedia applications
+- [Development Tools](/packages/development-tools) - Development tools and IDEs
+- [System Tools](/packages/system-tools) - System utilities

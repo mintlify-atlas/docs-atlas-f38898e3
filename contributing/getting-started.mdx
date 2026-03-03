@@ -1,0 +1,227 @@
+---
+title: Getting Started
+description: Learn how to start contributing to Terra Packages
+---
+
+Thanks for being interested in contributing to Terra! This guide will help you get started with contributing packages to our rolling-release Fedora repository.
+
+## Before You Begin
+
+Terra is a monorepo containing hundreds of packages for Fedora. We welcome contributions from everyone, whether you're fixing bugs, adding new packages, or improving existing ones.
+
+<Note>
+  If you have any questions about contributing, please [join our chats](https://wiki.ultramarine-linux.org/en/community/community/).
+</Note>
+
+## Code of Conduct
+
+The Terra Community is committed to being inclusive to contributors with the most varied and diverse backgrounds possible. We expect all community members to:
+
+- Participate in an authentic and active way
+- Exercise consideration and respect in speech and actions
+- Attempt collaboration before conflict
+- Refrain from demeaning, discriminatory, or harassing behavior
+- Be mindful of surroundings and fellow participants
+
+<Warning>
+  Unacceptable behavior will not be tolerated. Please report any concerns to contact@fyralabs.com.
+</Warning>
+
+For full details, see our [Code of Conduct](https://github.com/terrapkg/packages/blob/frawhide/CODE_OF_CONDUCT.md).
+
+## Understanding Terra's Structure
+
+Terra packages are organized in the `anda/` directory by category:
+
+- `tools/` - Command-line tools and utilities
+- `apps/` - Desktop applications
+- `system/` - System packages, drivers, and kernel modules
+- `themes/` - Icon themes, GTK themes, and visual customizations
+- `desktops/` - Desktop environments and window managers
+- `games/` - Gaming-related packages
+- `fonts/` - Font packages
+- `multimedia/` - Media players and editors
+- `devs/` - Development tools and IDEs
+- `terra/` - Terra-specific packages (release configs, macros, etc.)
+
+Each package lives in its own subdirectory and contains:
+
+- `anda.hcl` - Package configuration file
+- `*.spec` - RPM spec file
+- `update.rhai` - Automated update script (optional)
+- Patches and additional files as needed
+
+## Development Environment Setup
+
+<Steps>
+  <Step title="Fork and Clone the Repository">
+    Fork the [Terra Packages repository](https://github.com/terrapkg/packages) on GitHub, then clone your fork:
+
+    ```bash
+    git clone https://github.com/YOUR_USERNAME/packages.git
+    cd packages
+    ```
+  </Step>
+
+  <Step title="Install Build Dependencies">
+    Install Andaman (anda), the build tool for Terra packages:
+
+    ```bash
+    # On Fedora-based systems
+    sudo dnf install anda
+
+    # Or install from Terra repository
+    sudo dnf copr enable fyralabs/terra
+    sudo dnf install anda
+    ```
+
+    You'll also need standard RPM build tools:
+
+    ```bash
+    sudo dnf install @development-tools @rpm-development-tools
+    sudo dnf install rpm-build rpmdevtools dnf-plugins-core
+    ```
+  </Step>
+
+  <Step title="Set Up Mock Configuration">
+    Terra uses Mock for isolated builds. Install the Terra mock configs:
+
+    ```bash
+    sudo dnf builddep anda/terra/mock-configs/*.spec
+    sudo dnf install terra-mock-configs
+    ```
+
+    Add yourself to the mock group:
+
+    ```bash
+    sudo usermod -a -G mock $USER
+    newgrp mock
+    ```
+  </Step>
+
+  <Step title="Verify Your Setup">
+    Test that you can build a simple package:
+
+    ```bash
+    # Build a small package to test your setup
+    anda build anda/tools/typos/pkg -c terra-frawhide-x86_64
+    ```
+
+    If the build completes successfully, you're ready to contribute!
+  </Step>
+</Steps>
+
+## Making Your First Contribution
+
+### Finding Something to Work On
+
+Good first contributions include:
+
+- **Package Updates**: Check for outdated packages and submit version bumps
+- **Bug Fixes**: Browse [open issues](https://github.com/terrapkg/packages/issues) labeled "bug"
+- **Package Requests**: Look for [package requests](https://github.com/terrapkg/packages/issues?q=is%3Aissue+is%3Aopen+label%3Aenhancement) you can fulfill
+- **Documentation**: Improve package descriptions or fix spec file issues
+
+### Creating a Branch
+
+Always create a new branch for your work:
+
+```bash
+git checkout -b add-package-name
+# or
+git checkout -b fix-package-name-issue
+# or  
+git checkout -b update-package-name
+```
+
+### Testing Your Changes
+
+Before submitting, always test your changes:
+
+```bash
+# Build the package
+anda build anda/category/package-name/pkg -c terra-frawhide-x86_64
+
+# Install and test the resulting RPM
+sudo dnf install anda-build/rpm/rpms/x86_64/package-name-*.rpm
+
+# Test that the software works as expected
+package-name --version
+```
+
+### Submitting a Pull Request
+
+<Steps>
+  <Step title="Commit Your Changes">
+    Write clear, descriptive commit messages:
+
+    ```bash
+    git add anda/category/package-name/
+    git commit -m "feat: add package-name version X.Y.Z"
+    # or
+    git commit -m "fix: correct dependency issue in package-name"
+    # or
+    git commit -m "chore: update package-name to version X.Y.Z"
+    ```
+  </Step>
+
+  <Step title="Push to Your Fork">
+    ```bash
+    git push origin your-branch-name
+    ```
+  </Step>
+
+  <Step title="Open a Pull Request">
+    Go to the [Terra Packages repository](https://github.com/terrapkg/packages) and click "New Pull Request". Select your branch and fill out the PR template:
+
+    - Describe what software is being packaged or changed
+    - Explain your motivation for the change
+    - Note any testing you've performed
+    - Link to any relevant issues
+  </Step>
+
+  <Step title="Respond to Review Feedback">
+    Maintainers will review your PR and may request changes. Address feedback promptly and push updates to your branch - the PR will update automatically.
+  </Step>
+</Steps>
+
+## Automated CI/CD
+
+When you submit a PR, GitHub Actions will automatically:
+
+1. **Generate Build Matrix**: Determine which packages changed
+2. **Build Packages**: Build your packages in isolated containers
+3. **Run Tests**: Validate the build artifacts
+4. **Generate AppStream**: Create metadata for GUI applications
+
+You can monitor the build progress in the "Checks" tab of your PR.
+
+<Warning>
+  PRs must pass all CI checks before they can be merged. Fix any build failures by pushing updates to your branch.
+</Warning>
+
+## Getting Help
+
+If you get stuck:
+
+- **Documentation**: Read our [packaging guidelines](/contributing/package-guidelines) and [testing guide](/contributing/testing)
+- **Community Chat**: [Join our chats](https://wiki.ultramarine-linux.org/en/community/community/) to ask questions
+- **Issue Tracker**: Search [existing issues](https://github.com/terrapkg/packages/issues) for similar problems
+- **Examples**: Look at similar packages in the repository for reference
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Adding Packages" icon="plus" href="/contributing/adding-packages">
+    Learn how to add new packages to Terra
+  </Card>
+  <Card title="Package Guidelines" icon="book" href="/contributing/package-guidelines">
+    Follow best practices for packaging
+  </Card>
+  <Card title="Testing Packages" icon="flask" href="/contributing/testing">
+    Ensure your packages work correctly
+  </Card>
+  <Card title="FAQ" icon="question" href="https://developer.fyralabs.com/terra/faq">
+    Common questions and answers
+  </Card>
+</CardGroup>

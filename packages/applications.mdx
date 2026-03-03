@@ -1,0 +1,156 @@
+---
+title: Applications
+description: User applications available in Terra Packages
+---
+
+Terra Packages provides a wide variety of user applications, from communication tools to productivity software. These packages are built for Fedora and maintained through the Anda build system.
+
+## Package Categories
+
+<CardGroup cols={2}>
+  <Card title="Communication" icon="comments">
+    Discord, Signal, Matrix clients, and more
+  </Card>
+  <Card title="Multimedia" icon="film">
+    Media players, editors, and streaming tools
+  </Card>
+  <Card title="Productivity" icon="briefcase">
+    Note-taking, task management, and utilities
+  </Card>
+  <Card title="Gaming Utilities" icon="gamepad">
+    Launchers, mod managers, and gaming tools
+  </Card>
+</CardGroup>
+
+## Featured Applications
+
+### Communication & Social
+
+<AccordionGroup>
+  <Accordion title="Discord Variants">
+    Multiple Discord clients are available:
+    
+    - **discord** - Official Discord desktop client
+    - **discord-openasar** - Discord with OpenAsar for better performance
+    - **vesktop** - Alternative Discord client with Vencord built-in
+    - **goofcord** - Privacy-focused Discord client
+    - **legcord** - Lightweight Discord client
+    - **dorion** - Minimalist Discord client
+    
+    All variants support x86_64 architecture.
+  </Accordion>
+
+  <Accordion title="Other Communication Apps">
+    - **signal-desktop** - Private messaging application
+    - **gurk** - Signal TUI client
+    - **halloy** - IRC client written in Rust
+  </Accordion>
+</AccordionGroup>
+
+### Multimedia Applications
+
+- **youtube-music** - YouTube Music desktop client
+- **spotify-launcher** - Official Spotify launcher for Linux
+- **feishin** - Full-featured Subsonic/Jellyfin music player
+- **mpv** - Powerful media player
+- **flameshot** - Screenshot utility
+- **subtitleedit** - Subtitle editor
+
+### Productivity & Utilities
+
+- **anki** - Spaced repetition flashcard program (multiple variants: source build, Qt5, and binary)
+- **mission-center** - System monitor for GNOME
+- **mugshot** - Profile picture manager
+- **webapp-manager** - Create web apps from websites
+- **sticky** - Note-taking application
+- **peazip** - Archive manager
+
+### Gaming & Emulation
+
+- **protontricks** - Winetricks wrapper for Proton
+- **woeusb-ng** - Windows USB creator
+- **scrcpy** - Android screen mirroring tool
+
+## Package Configuration Example
+
+<Note>
+  All packages use the `anda.hcl` configuration format for build specifications.
+</Note>
+
+Here's an example from Discord:
+
+```hcl
+project pkg {
+  arches = ["x86_64"]
+  rpm {
+    spec = "discord.spec"
+  }
+}
+```
+
+And the corresponding spec file header:
+
+```spec
+Name:           discord
+Version:        0.0.127
+Release:        1%?dist
+Summary:        Free Voice and Text Chat for Gamers
+URL:            https://discord.com
+License:        https://discord.com/terms
+ExclusiveArch:  x86_64
+```
+
+## System Requirements
+
+<Warning>
+  Some applications have architecture restrictions. Most applications are x86_64 only, though some support additional architectures.
+</Warning>
+
+Typical dependencies include:
+- GTK3/GTK4 for GUI applications
+- Various system libraries (glibc, nspr, nss)
+- X11 or Wayland display server
+
+## Installation
+
+Applications can be installed using DNF:
+
+```bash
+sudo dnf install discord
+sudo dnf install vesktop
+sudo dnf install anki
+```
+
+## Available Applications
+
+The applications directory contains over 70 packages, including:
+
+- audacity-freeworld
+- bitwarden (CLI and binary versions)
+- chdig
+- coolercontrol
+- envision
+- fontviewer
+- helium-browser-bin
+- juce
+- komikku
+- kopia
+- librepods
+- neohtop
+- newsraft
+- opensnitch
+- qiqi-notebook
+- rasputin
+- rp-bookshelf
+- rpinters
+- ruffle
+- snow
+- socktop
+- throne
+- ttop
+- tuxclocker
+- twintaillauncher
+- voicevox
+- vpkedit
+
+For a complete list, browse the `anda/apps/` directory in the source repository.

@@ -1,0 +1,715 @@
+---
+title: Automation and Build Processes
+description: Deep dive into Terra Packages automation, build system, and CI/CD integration
+---
+
+# Automation and Build Processes
+
+Terra Packages implements a sophisticated automated build system that handles package detection, dependency resolution, compilation, caching, and deployment. This page explains how the automation works and how to leverage it effectively.
+
+## Build System Architecture
+
+The Terra Packages build system consists of several interconnected components:
+
+```
+┌─────────────────┐
+│  Git Changes    │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  anda ci        │  Detects changed packages
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  Build Matrix   │  JSON matrix with pkg, arch, labels
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  Runner Select  │  Chooses appropriate runner
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  anda build     │  Compiles package
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  Subatomic      │  Uploads to repository
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  Madoguchi      │  Tracks build status
+└─────────────────┘
+```
+
+## Change Detection
+
+The `anda ci` command analyzes git history to determine which packages need to be built.
+
+### How It Works
+
+1. Compares current commit with base branch (e.g., `frawhide`)
+2. Identifies modified files under `anda/`
+3. Maps files to package definitions
+4. Generates a build matrix including:
+   - Package path
+   - Target architecture
+   - Package labels
+   - Dependencies
+
+### Build Matrix Format
+
+The build matrix is a JSON array of objects:
+
+<Code>
+```json
+[
+  {
+    "pkg": "anda/apps/firefox/pkg",
+    "arch": "x86_64",
+    "labels": {
+      "large": "1",
+      "sccache": "1"
+    }
+  },
+  {
+    "pkg": "anda/apps/firefox/pkg",
+    "arch": "aarch64",
+    "labels": {
+      "large": "1",
+      "sccache": "1"
+    }
+  }
+]
+```
+</Code>
+
+Each entry represents one build job with specific architecture and configuration.
+
+## Package Labels
+
+Labels control various aspects of the build process. They're defined in the package's `anda.hcl` file.
+
+### Common Labels
+
+| Label | Value | Effect |
+|-------|-------|--------|
+| `large` | `1` | Use large runner with more resources |
+| `sccache` | `0` | Disable compiler caching |
+| `mock` | `1` | Build in mock chroot (isolated) |
+| `subrepo` | `name` | Upload to terra-{name} repository |
+| `no_upload_srpms` | `1` | Skip source package upload |
+| `nightly` | `1` | Exclude from automatic updates |
+| `weekly` | `1` | Update weekly instead of continuous |
+| `updbranch` | `1` | Update from specific branch |
+
+### Example Label Usage
+
+<Code>
+```hcl
+project pkg {
+  rpm {
+    spec = "firefox.spec"
+  }
+  
+  labels {
+    large = "1"        # Requires more CPU/memory
+    sccache = "1"      # Enable compiler caching
+    subrepo = "browser" # Upload to terra-browser repo
+  }
+}
+```
+</Code>
+
+## Runner Selection Logic
+
+Terra Packages uses dynamic runner selection based on package requirements:
+
+<Code>
+```yaml
+runs-on: ${{ 
+  inputs.custom_builder && inputs.custom_builder || 
+  (matrix.pkg.arch == 'aarch64' && matrix.pkg.labels['large']) && 'arm64-lg' || 
+  matrix.pkg.arch == 'aarch64' && 'ubuntu-22.04-arm' || 
+  matrix.pkg.labels['large'] && format('cirun-x86-64-lg--{0}', github.run_id) || 
+  'ubuntu-22.04' 
+}}
+```
+</Code>
+
+The selection priority:
+
+1. **Custom builder** - If specified via workflow input
+2. **arm64-lg** - Large ARM64 packages (e.g., Chromium on aarch64)
+3. **ubuntu-22.04-arm** - Standard ARM64 packages
+4. **cirun-x86-64-lg** - Large x86_64 packages (dynamic runner)
+5. **ubuntu-22.04** - Standard x86_64 packages
+
+<Note>
+Large runners are ephemeral and created on-demand using Cirun for x86_64 builds.
+</Note>
+
+## Build Container Environment
+
+All builds run in privileged containers based on the Terra builder image:
+
+<Code>
+```yaml
+container:
+  image: ghcr.io/terrapkg/builder:f${{ matrix.version }}
+  options: --cap-add=SYS_ADMIN --privileged
+```
+</Code>
+
+The builder container includes:
+- Fedora Rawhide base system
+- Andaman (`anda`) build tool
+- Mock for isolated builds
+- DNF5 package manager
+- Rust toolchain
+- Common build dependencies
+
+<Warning>
+Containers run with `--privileged` and `SYS_ADMIN` capability to support mock's filesystem operations and systemd-nspawn containers.
+</Warning>
+
+## Compiler Caching with sccache
+
+sccache provides distributed compilation caching to speed up builds.
+
+### Cache Configuration
+
+Caching is configured per package:
+
+<Code>
+```yaml
+- name: Configure sccache
+  id: sccache
+  if: ${{ !contains(matrix.pkg.labels.sccache, '0') }}
+  uses: actions/github-script@v8
+  env:
+    SCCACHE_GHA_VERSION: ${{ matrix.version }}-${{ matrix.pkg.arch }}-${{ matrix.pkg.pkg }}
+    SCCACHE_GHA_CACHE_FROM: ${{ matrix.version }}-${{ matrix.pkg.arch }}-${{ matrix.pkg.pkg }}
+  with:
+    script: |
+      const script = require('./.github/scripts/configure-sccache.js')
+      await script({github, context, core, exec})
+```
+</Code>
+
+### Cache Keys
+
+Caches are keyed by:
+- **Version** - Fedora version (rawhide, f44, etc.)
+- **Architecture** - x86_64 or aarch64
+- **Package path** - Full path to package definition
+
+This ensures cache hits for repeated builds of the same package while avoiding cross-contamination.
+
+### Cache Statistics
+
+After each build, cache statistics are reported:
+
+<Code>
+```yaml
+- name: Report Cache Summary
+  if: steps.sccache.outcome == 'success'
+  uses: actions/github-script@v8
+  with:
+    script: |
+      const script = require('./.github/scripts/sccache-stats.js')
+      await script({github, context, core, exec})
+```
+</Code>
+
+The summary shows:
+- Cache hit rate
+- Compilation time saved
+- Cache size
+
+## Build Process Stages
+
+Each package build goes through several stages:
+
+### 1. CI Setup Script
+
+Optional pre-build setup for complex packages:
+
+<Code>
+```yaml
+- name: CI Setup Script
+  if: ${{ !contains(matrix.pkg.labels, 'mock') }}
+  run: |
+    dir=$(dirname ${{ matrix.pkg.pkg }})
+    if [ -f $dir/ci_setup.rhai ]; then
+      anda run $dir/ci_setup.rhai --labels script_path=$dir/ci_setup.rhai
+    fi
+```
+</Code>
+
+The `ci_setup.rhai` script can:
+- Download additional sources
+- Generate files
+- Configure build environment
+- Install extra dependencies
+
+### 2. Dependency Installation
+
+Automatic build dependency installation:
+
+<Code>
+```yaml
+- name: Install Build Dependencies
+  if: ${{ matrix.pkg.labels.mock != '1' }}
+  run: |
+    dir=$(dirname ${{ matrix.pkg.pkg }})
+    dnf5 builddep -y ${dir}/*.spec
+```
+</Code>
+
+<Note>
+Packages using mock (isolated builds) skip this step as mock handles dependencies internally.
+</Note>
+
+### 3. Package Compilation
+
+The actual build using Andaman:
+
+<Code>
+```yaml
+- name: Build with Andaman
+  run: anda build -D "vendor Terra" -D "__python %{__python3}" ${{ matrix.pkg.pkg }} -c terra-${{ matrix.version }}-${{ matrix.pkg.arch }} ${{ !matrix.pkg.labels.mock == '1' && '-rrpmbuild' || '' }}
+```
+</Code>
+
+Build flags:
+- `-D "vendor Terra"` - Set vendor to Terra
+- `-D "__python %{__python3}"` - Use Python 3
+- `-c terra-{version}-{arch}` - Use Terra mock config
+- `-rrpmbuild` - Use rpmbuild runner (non-mock builds)
+
+### 4. Artifact Generation
+
+Built packages are organized and uploaded:
+
+<Code>
+```yaml
+- name: Generating artifact name
+  id: art
+  run: |
+    NAME=${{ matrix.pkg.pkg }}-${{ matrix.pkg.arch }}-${{ matrix.version }}
+    x=${NAME//\//@}
+    echo "name=$x" >> $GITHUB_OUTPUT
+
+- uses: actions/upload-artifact@v6
+  with:
+    name: ${{ steps.art.outputs.name }}
+    compression-level: 0
+    path: |
+      anda-build/rpm/rpms/*
+      anda-build/rpm/srpm/*
+```
+</Code>
+
+Artifact naming:
+- Forward slashes replaced with `@`
+- Format: `{package}@{subpackage}@pkg-{arch}-{version}`
+- Example: `anda@apps@firefox@pkg-x86_64-rawhide`
+
+## Repository Upload
+
+Packages are uploaded to Subatomic, Terra's package repository server.
+
+### Binary Package Upload
+
+<Code>
+```yaml
+- name: Upload packages to subatomic
+  if: inputs.publish
+  run: |
+    subrepo="${{ matrix.pkg.labels.subrepo }}"
+    subatomic-cli upload --prune \
+      --server https://subatomic.fyralabs.com \
+      --token ${{ secrets.SUBATOMIC_TOKEN }} \
+      terra${{ matrix.version }}${{ matrix.pkg.labels['subrepo'] && '-$subrepo' || '' }} anda-build/rpm/rpms/*
+```
+</Code>
+
+### Source Package Upload
+
+<Code>
+```yaml
+- name: Upload source packages to subatomic
+  if: inputs.publish && matrix.pkg.labels['no_upload_srpms'] != '1'
+  run: |
+    subrepo="${{ matrix.pkg.labels.subrepo }}"
+    subatomic-cli upload --prune \
+      --server https://subatomic.fyralabs.com \
+      --token ${{ secrets.SUBATOMIC_TOKEN }} \
+      terra${{ matrix.version }}${{ matrix.pkg.labels['subrepo'] && '-$subrepo' || '' }}-source anda-build/rpm/srpm/*
+```
+</Code>
+
+### Repository Structure
+
+Packages can be uploaded to different repositories:
+
+| Repository | Purpose |
+|------------|----------|
+| `terrarawhide` | Main rolling-release repository |
+| `terrarawhide-source` | Source packages |
+| `terrarawhide-browser` | Sub-repository for browsers (example) |
+| `terraf44` | Fedora 44 stable repository |
+
+<Note>
+The `--prune` flag removes older versions of the same package automatically.
+</Note>
+
+## Build Status Tracking
+
+Madoguchi tracks build status for all packages.
+
+### Success Notification
+
+<Code>
+```yaml
+- name: Notify Madoguchi (Success)
+  if: inputs.publish && success()
+  run: ./.github/workflows/mg.sh true "${{matrix.pkg.pkg}}" "${{matrix.version}}" "${{matrix.pkg.arch}}" "${{github.run_id}}" "${{secrets.MADOGUCHI_JWT}}" "$GITHUB_SHA"
+```
+</Code>
+
+### Failure Notification
+
+<Code>
+```yaml
+- name: Notify Madoguchi (Failure)
+  if: inputs.publish && (cancelled() || failure())
+  run: ./.github/workflows/mg.sh false "${{matrix.pkg.pkg}}" "${{matrix.version}}" "${{matrix.pkg.arch}}" "${{github.run_id}}" "${{secrets.MADOGUCHI_JWT}}" "$GITHUB_SHA"
+```
+</Code>
+
+Madoguchi tracks:
+- Build success/failure status
+- Build duration
+- Package versions
+- Historical build data
+- Architecture-specific builds
+
+## Automatic Updates
+
+The update workflow automatically checks for new upstream versions.
+
+### Update Frequency
+
+<Code>
+```yaml
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+```
+</Code>
+
+Updates run every 10 minutes, checking all packages without exclusion labels.
+
+### Update Excludes
+
+<Code>
+```yaml
+- name: Run Update
+  run: anda update --excludes nightly=1 --excludes weekly=1 --excludes updbranch=1
+```
+</Code>
+
+Excluded packages:
+- `nightly=1` - Packages tracking nightly builds (updated separately)
+- `weekly=1` - Packages updated weekly (not continuous)
+- `updbranch=1` - Packages tracking specific branches
+
+### Update Detection Methods
+
+Andaman supports multiple update detection strategies:
+
+1. **GitHub Releases** - Checks latest release tag
+2. **Git Tags** - Monitors git repository tags
+3. **HTTP HEAD** - Checks file modification time
+4. **Custom Scripts** - Runs `update.rhai` scripts
+5. **Version Comparison** - Parses version strings
+
+### Multi-Branch Updates
+
+Updates are applied to all active release branches:
+
+<Code>
+```yaml
+- name: Save
+  run: |
+    if [[ `git status --porcelain` ]]; then
+      git config user.name "Raboneko"
+      git config user.email "raboneko@fyralabs.com"
+      git config gpg.format "ssh"
+      git config user.signingkey "${{ runner.temp }}/signing_key"
+      msg="bump: $(anda run andax/ci/update_commit_message.rhai)"
+      git commit -S -a -m "$msg"
+      git format-patch HEAD^
+      copy_over () {
+        git checkout $1
+        git apply *.patch || true
+        git add anda
+        git commit -S -a -m "$msg"
+      }
+      copy_over f44 || true
+      copy_over f43 || true
+      copy_over f42 || true
+      copy_over el10 || true
+      git push -u origin --all
+    fi
+```
+</Code>
+
+The process:
+1. Commit update to main branch (`frawhide`)
+2. Generate patch file
+3. Apply patch to each stable branch
+4. Commit with same message
+5. Push all branches simultaneously
+
+<Warning>
+All update commits are SSH-signed for security and auditability.
+</Warning>
+
+## AppStream Generation
+
+After building, AppStream metadata is generated for package discovery in software centers.
+
+### Generation Process
+
+<Code>
+```yaml
+appstream:
+  needs: build
+  runs-on: ubuntu-latest
+  container:
+    image: ghcr.io/terrapkg/appstream-generator:main
+  steps:
+    - name: Download artifacts
+      uses: actions/download-artifact@v7
+      with:
+        merge-multiple: true
+        path: ./artifacts
+    - name: Generate test catalog
+      run: |
+        appstream-builder -v \
+          --packages-dir=artifacts/rpms \
+          --icons-dir=icons \
+          --include-failed \
+          --output-dir=output \
+          --uncompressed-icons \
+          --origin=test \
+          --basename=test \
+          --veto-ignore=missing-parents \
+          --veto-ignore=missing-info 2>&1 | tee asb.log
+```
+</Code>
+
+### Veto Reporting
+
+Packages that fail AppStream validation are reported:
+
+<Code>
+```yaml
+- name: Report Summary
+  run: |
+    if grep -q "veto" asb.log; then
+      echo "::group::Vetoed packages"
+      echo "### Vetoed packages" >> $GITHUB_STEP_SUMMARY
+      echo "$(grep -i 'veto' asb.log)" >> $GITHUB_STEP_SUMMARY
+      echo "::warning file=asb.log::Some packages were vetoed during AppStream generation."
+      echo "::endgroup::"
+    fi
+```
+</Code>
+
+Common veto reasons:
+- Missing AppStream metadata file
+- Invalid desktop file
+- Missing icon
+- Malformed XML
+
+## Bootstrap Process
+
+The bootstrap workflow builds the build system from scratch.
+
+### Bootstrap Stages
+
+1. **Base System Setup**
+
+<Code>
+```yaml
+- name: Install repositories
+  run: |
+    dnf5 swap -y --setopt=install_weak_deps=False systemd-standalone-sysusers systemd
+    dnf5 install -y --setopt=install_weak_deps=False curl wget git-core openssl-devel cargo podman fuse-overlayfs dnf5-plugins rpmbuild script
+```
+</Code>
+
+2. **SRPM Macros**
+
+<Code>
+```yaml
+- name: Build anda-srpm-macros
+  run: |
+    mkdir -p anda-build/rpm/rpms
+    rpmbuild -bb anda/terra/srpm-macros/*.spec --undefine=_disable_source_fetch -D "_sourcedir $(pwd)/anda/terra/srpm-macros/" -D "_rpmdir $(pwd)/anda-build/rpm/rpms/"
+    mv ./anda-build/rpm/rpms/*/anda-*.rpm ./anda-build/rpm/rpms/
+    dnf5 install -y ./anda-build/rpm/rpms/anda-*.rpm
+```
+</Code>
+
+3. **Andaman**
+
+<Code>
+```yaml
+- name: Install Anda
+  run: |
+    rpmbuild -bb anda/tools/buildsys/anda/*.spec --undefine=_disable_source_fetch -D "_sourcedir $(pwd)/anda/tools/buildsys/anda/" -D "_rpmdir $(pwd)/anda-build/rpm/rpms/"
+    mv ./anda-build/rpm/rpms/*/anda-*.rpm ./anda-build/rpm/rpms/
+    dnf5 install -y ./anda-build/rpm/rpms/anda-*.rpm
+```
+</Code>
+
+4. **Terra Infrastructure**
+
+<Code>
+```yaml
+- name: Build terra-mock-configs
+  run: anda build -D "vendor Terra" -rrpmbuild anda/terra/mock-configs/pkg
+
+- name: Build terra-release
+  run: anda build -D "vendor Terra" -rrpmbuild anda/terra/release/pkg
+
+- name: Build terra-appstream-helper
+  run: anda build -D "vendor Terra" -D "__python %{__python3}" -rrpmbuild anda/terra/appstream-helper/pkg
+```
+</Code>
+
+5. **Subatomic**
+
+<Code>
+```yaml
+- name: Build Subatomic
+  run: anda build -D "vendor Terra" -rrpmbuild anda/tools/buildsys/subatomic/pkg
+- name: Install Subatomic
+  run: dnf5 install -y ./anda-build/rpm/rpms/subatomic-*.rpm
+```
+</Code>
+
+<Note>
+The bootstrap must build packages in a specific order due to dependencies. Later packages depend on earlier ones being installed.
+</Note>
+
+## Manual Build Workflow
+
+Maintainers can manually trigger builds with custom parameters.
+
+### Build Trigger
+
+<Code>
+```yaml
+workflow_dispatch:
+  inputs:
+    packages:
+      description: "Packages to Build"
+      required: true
+    custom_builder:
+      description: "Custom Builder"
+      required: false
+      default: ""
+    architecture:
+      description: "Architectures"
+      required: false
+      default: ""
+      type: string
+```
+</Code>
+
+### Package Selection
+
+The workflow uses a clever trick to force specific packages to build:
+
+<Code>
+```yaml
+- name: Parse Input
+  run: |
+    for pkg in ${{ inputs.packages }}; do
+      touch anda/$pkg/.build
+    done
+    git add --all
+    git commit -a -m "tmp"
+    b=$(anda ci | sed -E 's@^build_matrix=@@')
+```
+</Code>
+
+By touching `.build` files and creating a temporary commit, the workflow tricks `anda ci` into detecting those packages as changed.
+
+### Architecture Filtering
+
+<Code>
+```yaml
+if [ "${{ inputs.architecture }}" != "" ]; then
+  filter=`echo -n "${{ inputs.architecture }}" | tr '[:space:]' '\n' | sed -E '/^$/d; s@^.+$@.arch="\0"@' | tr '\n' ', '`
+  b=`echo $b | jq -c '[unique_by(.pkg)[] | ('"$filter"')]'`
+fi
+```
+</Code>
+
+This allows building specific architectures:
+- Input: `x86_64 aarch64`
+- Result: Build for both architectures
+- Input: `x86_64`
+- Result: Build for x86_64 only
+
+## Best Practices
+
+### For Package Maintainers
+
+1. **Use appropriate labels**
+   - Mark large packages with `large=1`
+   - Disable sccache for small packages with `sccache=0`
+   - Use sub-repositories for themed package groups
+
+2. **Optimize builds**
+   - Enable compiler caching for C/C++ projects
+   - Use mock for packages with complex dependencies
+   - Write `ci_setup.rhai` for complex pre-build steps
+
+3. **Version management**
+   - Use `nightly=1` for packages tracking development versions
+   - Use `weekly=1` for large packages that change frequently
+   - Implement `update.rhai` for custom update logic
+
+### For CI/CD Efficiency
+
+1. **Minimize rebuilds**
+   - Use `fail-fast: false` to build all architectures even if one fails
+   - Leverage sccache for incremental builds
+   - Cache downloaded sources
+
+2. **Resource optimization**
+   - Reserve large runners for truly large packages
+   - Use compression-level 0 for pre-compressed artifacts
+   - Prune old packages during upload
+
+3. **Monitoring**
+   - Review AppStream veto reports
+   - Check Madoguchi for build trends
+   - Monitor cache hit rates
+
+<Note>
+The entire build system is designed for transparency and reproducibility. All builds run in clean containers with declared dependencies.
+</Note>

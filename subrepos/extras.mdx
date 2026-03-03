@@ -1,0 +1,138 @@
+---
+title: Terra Extras
+description: Repository with packages that might cause conflict with Fedora
+---
+
+## Overview
+
+Terra Extras is a specialized repository containing packages that may conflict with standard Fedora packages. This subrepo provides alternative versions of software that offer enhanced features, newer versions, or specific patches not available in the main Fedora repositories.
+
+<Warning>
+  Installing packages from Terra Extras may replace or conflict with packages from the standard Fedora repositories. Use with caution and understand what you're installing.
+</Warning>
+
+## What's in Terra Extras?
+
+The Terra Extras repository includes a diverse collection of packages across multiple categories:
+
+### Applications
+- **anki** - Flashcard application for learning
+- **protontricks** - Winetricks wrapper for Proton games
+- **winetricks** - Script to install common Windows libraries
+- **switcheroo-control** - GPU switching control daemon
+
+### Desktop Environments
+- **gnome-shell** - Custom GNOME Shell builds
+- Hyprland ecosystem packages:
+  - hyprgraphics
+  - hyprland-protocols
+  - hyprlang
+  - hyprutils
+  - hyprwayland-scanner
+
+### Gaming
+- **terra-gamescope** - Custom gamescope build for gaming sessions
+
+### Development Tools
+- **yarn-berry** - Modern Yarn package manager (v2+)
+- Python packages:
+  - bash-kernel
+  - jupyter-sphinx
+  - protobuf
+  - proton-core
+
+### Libraries
+- **DirectX-Headers** - DirectX header files for Linux
+- **zlib** - Custom zlib builds
+
+## Repository Configuration
+
+The Terra Extras repository is configured with the following settings:
+
+```ini
+[terra-extras]
+name=Terra $releasever (Extras)
+metalink=https://tetsudou.fyralabs.com/metalink?repo=terra$releasever-extras&arch=$basearch
+metadata_expire=6h
+type=rpm
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-terra$releasever-extras
+repo_gpgcheck=1
+enabled=1
+priority=150
+```
+
+<Note>
+  The repository priority is set to 150, which is lower than the base Terra repository. This means Fedora packages will be preferred when there's no conflict.
+</Note>
+
+## Installation
+
+<Steps>
+  <Step title="Install the release package">
+    Install the Terra Extras release package to enable the repository:
+    
+    ```bash
+    sudo dnf install terra-release-extras
+    ```
+  </Step>
+  
+  <Step title="Verify repository is enabled">
+    Check that the repository is active:
+    
+    ```bash
+    dnf repolist | grep terra-extras
+    ```
+    
+    You should see:
+    ```
+    terra-extras    Terra 40 (Extras)
+    ```
+  </Step>
+  
+  <Step title="Install packages">
+    Once enabled, you can install packages from Terra Extras:
+    
+    ```bash
+    sudo dnf install <package-name>
+    ```
+  </Step>
+</Steps>
+
+## Package Information
+
+To see all available packages in Terra Extras:
+
+```bash
+dnf repository-packages terra-extras list available
+```
+
+To check if a specific package comes from Terra Extras:
+
+```bash
+dnf info <package-name>
+```
+
+## Disabling the Repository
+
+If you need to temporarily disable Terra Extras:
+
+```bash
+sudo dnf config-manager --set-disabled terra-extras
+```
+
+To re-enable it:
+
+```bash
+sudo dnf config-manager --set-enabled terra-extras
+```
+
+## Source Repository
+
+The source repository is available but disabled by default:
+
+```bash
+sudo dnf config-manager --set-enabled terra-extras-source
+```
+
+This provides access to source RPMs for all packages in Terra Extras.

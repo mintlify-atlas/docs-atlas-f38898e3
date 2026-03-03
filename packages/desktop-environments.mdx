@@ -1,0 +1,256 @@
+---
+title: Desktop Environments
+description: Desktop environments, window managers, and DE components in Terra Packages
+---
+
+Terra Packages provides extensive support for various desktop environments, window managers, and their components. From cutting-edge Wayland compositors to classic X11 window managers, you'll find everything needed for a customized desktop experience.
+
+## Supported Desktop Environments
+
+<CardGroup cols={2}>
+  <Card title="Wayland Compositors" icon="window-maximize">
+    Hyprland, Sway, SwayFX, Niri, and more
+  </Card>
+  <Card title="GNOME Extensions" icon="puzzle-piece">
+    Custom extensions and shell modifications
+  </Card>
+  <Card title="KDE Components" icon="k">
+    Plasma addons and customization tools
+  </Card>
+  <Card title="Alternative DEs" icon="desktop">
+    Unity, MATE, Budgie, and experimental DEs
+  </Card>
+</CardGroup>
+
+## Hyprland Ecosystem
+
+<Note>
+  Hyprland packages are actively maintained with the latest ecosystem components.
+</Note>
+
+### Core Components
+
+<AccordionGroup>
+  <Accordion title="Hyprland Core Libraries">
+    Essential libraries for Hyprland development:
+    
+    - **hyprland-protocols** - Wayland protocol extensions for Hyprland
+    - **hyprlang** - Configuration language parser
+    - **hyprutils** - Utility library
+    - **hyprgraphics** - Graphics utilities
+    - **hyprwayland-scanner** - Wayland protocol scanner
+    
+    Example configuration:
+    ```hcl
+    project pkg {
+      rpm {
+        spec = "hyprwayland-scanner.spec"
+      }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Hyprland Applications">
+    - **hyprlock** - GPU-accelerated screen locking utility
+    - **hypridle** - Idle management daemon
+    
+    From the hyprlock spec:
+    ```spec
+    Name:           hyprlock
+    Version:        0.9.2
+    Summary:        Hyprland's GPU-accelerated screen locking utility
+    License:        BSD-3-Clause
+    BuildRequires:  pkgconfig(hyprgraphics)
+    BuildRequires:  pkgconfig(hyprlang)
+    BuildRequires:  pkgconfig(hyprutils)
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Sway & SwayFX
+
+### SwayFX
+
+**swayfx** - Eye-candy fork of Sway with additional visual effects.
+
+```hcl
+project pkg {
+  rpm {
+    spec = "swayfx.spec"
+  }
+}
+```
+
+### Sway Utilities
+
+- **swayosd** - On-screen display for brightness and volume
+- **nwg-look** - GTK3 settings editor for Sway/wlroots
+- **sway-audio-idle-inhibit** - Prevents idle when audio is playing
+
+## Wayland Utilities
+
+<CardGroup cols={2}>
+  <Card title="Wallpaper Management" icon="image">
+    - **swww** - Animated wallpaper daemon
+    - **wpaperd** - Wallpaper daemon
+    - **mpvpaper** - Video wallpapers using MPV
+    - **waypaper** - GUI wallpaper setter
+  </Card>
+  
+  <Card title="Clipboard & Theming" icon="palette">
+    - **cliphist** - Clipboard history manager
+    - **clipse** - Clipboard manager
+    - **matugen** - Material You color generation
+  </Card>
+</CardGroup>
+
+### Application Launchers
+
+- **walker** - Application launcher for Wayland
+- **eww** - Widget system for custom bars and widgets
+
+### Screen Locking
+
+- **swaylock-effects** - Swaylock with additional effects
+- **hyprlock** - Hyprland's screen locker
+
+## GNOME Components
+
+### GNOME Shell
+
+- **gnome-shell** - Customized GNOME Shell builds
+
+### GNOME Extensions
+
+<AccordionGroup>
+  <Accordion title="Popular Extensions">
+    - **gnome-shell-extension-vicinae** - Window management extension
+    - **gnome-shell-extension-multi-monitors-bar** - Multi-monitor support
+    - **gnome-shell-extension-grand-theft-focus** - Focus stealing prevention
+    - **gnome-shell-extension-gpu-supergfxctl-switch** - GPU switching
+    - **gnome-shell-extension-battery_time** - Battery time indicator
+    - **gnome-shell-extension-appmenu-is-back** - Restores app menu
+  </Accordion>
+</AccordionGroup>
+
+### GNOME Utilities
+
+- **nautilus-open-any-terminal** - Terminal integration for Nautilus
+
+## KDE/Plasma Components
+
+- **lightdm-kde-greeter** - KDE greeter for LightDM
+- **kup** - Backup solution for KDE
+- **kde-liquidshell** - Alternative Plasma shell
+
+## MATE Desktop
+
+### MATE Tweaks
+
+- **mate-tweak** - MATE configuration tool
+
+### MATE Indicators
+
+- **mate-indicators-sound** - Sound indicator
+- **mate-indicators-session** - Session indicator
+- **mate-indicators-notifications** - Notifications indicator
+- **mate-indicators-messages** - Messages indicator
+- **mate-indicators-datetime** - Date/time indicator
+
+### MATE Applets
+
+- **mate-dock-applet** - Dock applet for MATE panel
+
+## Lomiri/Unity
+
+<Warning>
+  Lomiri (formerly Unity8) packages are experimental and under active development.
+</Warning>
+
+### Core Components
+
+- **lomiri** - The Lomiri desktop shell
+- **unity-shell** - Unity desktop shell
+- **unity-session** - Unity session management
+- **unity-settings-daemon** - Settings daemon
+- **unity-greeter** - Display manager greeter
+
+### Lomiri Libraries
+
+- **lomiri-ui-toolkit** - UI toolkit
+- **lomiri-api** - Core API
+- **lomiri-schemas** - GSettings schemas
+- **lomiri-download-manager** - Download management
+- **qtmir** - Qt/Mir integration
+
+## Other Desktop Environments
+
+### Budgie
+
+- **budgie-extras** - Additional applets and features for Budgie
+
+### Alternative Window Managers
+
+- **ctwm** - Classic Tab Window Manager
+- **compiz9** - Compiz window manager
+- **cagebreak** - Wayland tiling compositor
+- **somewm** - Minimalist window manager
+- **mwc** - Minimal Wayland compositor
+- **mangowc** - Mango Wayland compositor
+
+### Experimental
+
+- **noctalia-shell** - Custom shell implementation
+- **noctalia-qs** - Quick settings for Noctalia
+- **golang-github-fyshos-fynedesk** - Desktop built with Fyne toolkit
+
+## Niri Ecosystem
+
+- **niri-taskbar** - Taskbar for Niri compositor
+- **nirius** - Niri utilities
+
+## Package Structure Example
+
+Typical desktop environment package structure:
+
+```hcl
+project pkg {
+  rpm {
+    spec = "swayfx.spec"
+  }
+}
+```
+
+With dependencies like:
+
+```spec
+BuildRequires:  pkgconfig(cairo)
+BuildRequires:  pkgconfig(wayland-client)
+BuildRequires:  pkgconfig(wayland-protocols)
+BuildRequires:  pkgconfig(wlroots)
+```
+
+## Installation Examples
+
+### Install Hyprland Stack
+
+```bash
+sudo dnf install hyprland hyprlock hypridle
+```
+
+### Install Sway with Utilities
+
+```bash
+sudo dnf install swayfx swayosd nwg-look
+```
+
+### Install GNOME Extensions
+
+```bash
+sudo dnf install gnome-shell-extension-vicinae
+```
+
+## See Also
+
+- [Themes](/packages/themes) - Desktop themes and icon packs
+- [System Tools](/packages/system-tools) - System utilities and daemons

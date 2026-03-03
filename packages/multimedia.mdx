@@ -1,0 +1,348 @@
+---
+title: Multimedia
+description: Multimedia applications and codec packages in Terra Packages
+---
+
+Terra Packages provides cutting-edge multimedia applications and codec libraries, including video encoders, audio production tools, and multimedia frameworks built for the latest Fedora releases.
+
+## Multimedia Categories
+
+<CardGroup cols={2}>
+  <Card title="Video Codecs" icon="video">
+    x264, x265, VVC, and advanced encoders
+  </Card>
+  <Card title="FFmpeg" icon="film">
+    Complete multimedia framework
+  </Card>
+  <Card title="Audio Production" icon="music">
+    DAWs, plugins, and audio tools
+  </Card>
+  <Card title="Media Players" icon="play">
+    Advanced media playback applications
+  </Card>
+</CardGroup>
+
+## FFmpeg
+
+<Note>
+  FFmpeg is built with extensive codec support including patent-encumbered formats.
+</Note>
+
+### Configuration
+
+**ffmpeg** - Complete solution to record, convert and stream audio and video
+
+```hcl
+project pkg {
+  arches = ["x86_64", "aarch64", "i386"]
+  rpm {
+    spec = "ffmpeg.spec"
+    extra_repos = [
+      "https://repos.fyralabs.com/terrarawhide-nvidia",
+      "https://repos.fyralabs.com/terrarawhide-multimedia"
+    ]
+  }
+  labels {
+    updbranch = 1
+    mock = 1
+    subrepo = "multimedia"
+  }
+}
+```
+
+### Spec Details
+
+From the spec file:
+
+```spec
+Summary:        A complete solution to record, convert and stream audio and video
+Name:           ffmpeg
+Version:        8.0.1
+Release:        3%?dist
+License:        LGPLv3+
+URL:            http://ffmpeg.org/
+Epoch:          1
+
+# Patches for additional codec support
+Patch0:         ffmpeg-svt-vp9.patch
+Patch1:         ffmpeg-HandBrake.patch
+Patch2:         ffmpeg-chromium.patch
+Patch3:         ffmpeg-nvcc.patch
+```
+
+### Features
+
+- Full codec support including H.264, H.265, VP9, AV1
+- Hardware acceleration (VAAPI, NVENC, QSV)
+- Patent-encumbered format support
+- SVT-VP9 and HandBrake patches
+- NVIDIA CUDA support
+
+## Video Encoders & Decoders
+
+<AccordionGroup>
+  <Accordion title="x264 & x265">
+    **x264** - H.264/AVC encoder
+    **x265** - H.265/HEVC encoder
+    
+    From x265 configuration:
+    ```hcl
+    project pkg {
+      arches = ["x86_64", "aarch64", "i386"]
+      rpm {
+        spec = "x265.spec"
+        extra_repos = ["https://repos.fyralabs.com/terrarawhide-multimedia"]
+      }
+      labels {
+        mock = 1
+        subrepo = "multimedia"
+      }
+    }
+    ```
+    
+    Industry-standard video encoders used by countless applications.
+  </Accordion>
+
+  <Accordion title="Next-Gen Codecs">
+    **vvenc** - VVC/H.266 encoder (next generation)
+    **vvdec** - VVC/H.266 decoder
+    
+    VVC (Versatile Video Coding) offers superior compression compared to H.265.
+  </Accordion>
+
+  <Accordion title="Korean Codecs">
+    **xeve** - eXtra-fast Essential Video Encoder
+    **xevd** - eXtra-fast Essential Video Decoder
+    
+    MPEG-5 EVC (Essential Video Coding) codec implementation.
+  </Accordion>
+
+  <Accordion title="Chinese Codecs">
+    **uavs3d** - AVS3 decoder
+    
+    Support for Chinese AVS3 video coding standard.
+  </Accordion>
+
+  <Accordion title="Other Encoders">
+    **kvazaar** - Open-source HEVC encoder
+    **mjpegtools** - MJPEG video tools
+  </Accordion>
+</AccordionGroup>
+
+## Audio Production
+
+<AccordionGroup>
+  <Accordion title="Zrythm">
+    **zrythm** - Modern digital audio workstation (DAW)
+    
+    Professional-grade DAW for Linux with:
+    - MIDI and audio recording
+    - VST/LV2 plugin support
+    - Advanced automation
+    - Modern, intuitive interface
+  </Accordion>
+
+  <Accordion title="Carla">
+    **carla** - Fully-featured audio plugin host
+    
+    Supports multiple plugin formats:
+    - LADSPA, DSSI, LV2, VST2/3
+    - Audio Unit (via wine)
+    - SF2/3, SFZ soundfonts
+    - Plugin bridging and routing
+  </Accordion>
+
+  <Accordion title="Yabridge">
+    **yabridge** - Windows VST bridge for Linux
+    
+    Run Windows VST2/VST3 plugins natively on Linux through Wine.
+    Essential tool for music production on Linux.
+  </Accordion>
+
+  <Accordion title="OpenUTAU">
+    **openutau** - Open-source singing synthesis software
+    
+    Cross-platform UTAU implementation for vocal synthesis.
+  </Accordion>
+</AccordionGroup>
+
+## Media Players
+
+<AccordionGroup>
+  <Accordion title="DeaDBeeF">
+    **deadbeef** - Ultimate music player for GNU/Linux
+    **deadbeef-mpris2-plugin** - MPRIS2 support plugin
+    
+    Lightweight, highly customizable audio player with:
+    - Gapless playback
+    - Album art support  
+    - Extensive plugin system
+    - Multiple GUI options
+  </Accordion>
+</AccordionGroup>
+
+## GStreamer Plugins
+
+<Note>
+  GStreamer plugins enable multimedia support across GNOME and other applications.
+</Note>
+
+<AccordionGroup>
+  <Accordion title="GStreamer 1.x Plugins">
+    **gstreamer1-plugins-ugly** - Plugins with potential distribution issues
+    **gstreamer1-plugins-bad** - Experimental and lesser-quality plugins
+    **gstreamer1-plugin-libav** - FFmpeg-based plugin
+    **gstreamer1-vaapi** - VA-API hardware acceleration
+    **gstreamer1-plugin-icamerasrc** - Intel camera source plugin
+    
+    These provide comprehensive codec and hardware acceleration support.
+  </Accordion>
+</AccordionGroup>
+
+## Screen Recording
+
+**gpu-screen-recorder** - GPU-accelerated screen recorder
+
+Uses GPU encoding for efficient screen capture with minimal performance impact.
+
+## Streaming & Processing
+
+**tdf** - Time-domain filtering tools
+
+Advanced audio processing utilities.
+
+## Installation Examples
+
+### Install FFmpeg with Full Codec Support
+
+```bash
+sudo dnf install ffmpeg
+```
+
+### Install Video Encoding Tools
+
+```bash
+sudo dnf install x264 x265 vvenc
+```
+
+### Install Audio Production Suite
+
+```bash
+sudo dnf install zrythm carla yabridge
+```
+
+### Install Media Player
+
+```bash
+sudo dnf install deadbeef deadbeef-mpris2-plugin
+```
+
+### Install GStreamer Plugins
+
+```bash
+sudo dnf install gstreamer1-plugins-ugly gstreamer1-plugins-bad gstreamer1-plugin-libav gstreamer1-vaapi
+```
+
+### Install Screen Recording
+
+```bash
+sudo dnf install gpu-screen-recorder
+```
+
+## Architecture Support
+
+<Note>
+  Most multimedia packages support multiple architectures:
+  - x86_64 (primary)
+  - aarch64 (ARM64)
+  - i386 (32-bit, select packages)
+</Note>
+
+## Subrepo Organization
+
+<Warning>
+  Many multimedia packages are in the `multimedia` subrepo due to patent considerations.
+</Warning>
+
+Packages with `subrepo = "multimedia"` label are built separately:
+
+```hcl
+labels {
+  subrepo = "multimedia"
+  mock = 1
+}
+```
+
+Enable the multimedia repository:
+
+```bash
+sudo dnf config-manager --set-enabled terra-multimedia
+```
+
+## Hardware Acceleration
+
+### Intel
+
+- GStreamer VA-API support
+- Intel camera support (ipu6)
+- Quick Sync Video encoding
+
+### NVIDIA
+
+- NVENC/NVDEC support in FFmpeg
+- CUDA-accelerated encoding
+- Requires NVIDIA drivers
+
+### AMD
+
+- VA-API support
+- AMF encoder support (where available)
+
+## Development Libraries
+
+Many multimedia packages provide development files:
+
+```bash
+sudo dnf install ffmpeg-devel
+sudo dnf install x264-devel
+sudo dnf install x265-devel
+```
+
+See [Libraries](/packages/libraries) for more multimedia libraries like codecs and frameworks.
+
+## Available Multimedia Packages Summary
+
+The multimedia directory contains 25+ packages:
+
+**Video Encoding**:
+- x264, x265 (H.264/H.265)
+- vvenc, vvdec (VVC/H.266)
+- xeve, xevd (MPEG-5 EVC)
+- kvazaar (HEVC)
+- uavs3d (AVS3)
+
+**Frameworks**:
+- ffmpeg (complete multimedia framework)
+- GStreamer plugins (ugly, bad, libav, vaapi, icamerasrc)
+
+**Audio Production**:
+- zrythm (DAW)
+- carla (plugin host)
+- yabridge (Windows VST bridge)
+- openutau (vocal synthesis)
+
+**Media Players**:
+- deadbeef (audio player)
+
+**Utilities**:
+- gpu-screen-recorder
+- mjpegtools
+- tdf
+
+For the complete list, browse the `anda/multimedia/` directory in the source repository.
+
+## See Also
+
+- [Libraries](/packages/libraries) - Multimedia codec libraries
+- [Applications](/packages/applications) - Media applications
+- [Games](/packages/games) - Screen capture and streaming tools

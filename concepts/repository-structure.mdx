@@ -1,0 +1,194 @@
+---
+title: Repository structure
+description: Understanding the monorepo organization and directory layout
+---
+
+Terra Packages uses a monorepo structure to organize all package manifests in a single repository. This approach simplifies package discovery, dependency management, and cross-package updates.
+
+## Monorepo overview
+
+The Terra Packages monorepo contains package manifests organized by category in the `anda/` directory. Each package lives in its own subdirectory with an `anda.hcl` manifest file that defines how to build the package.
+
+<Info>
+The monorepo structure allows Terra to maintain over 1,000 packages in a single repository while keeping them organized and discoverable.
+</Info>
+
+## Directory categories
+
+Packages are organized into the following top-level categories:
+
+<CardGroup cols={2}>
+  <Card title="apps" icon="grid">
+    Desktop applications like Discord, Anki, and Bitwarden
+  </Card>
+  <Card title="desktops" icon="desktop">
+    Desktop environments including Budgie, Hyprland, and GNOME components
+  </Card>
+  <Card title="devs" icon="code">
+    Development tools like Zed, Neovide, and Android Studio
+  </Card>
+  <Card title="fonts" icon="font">
+    Font packages for system and application use
+  </Card>
+  <Card title="games" icon="gamepad">
+    Gaming applications and utilities
+  </Card>
+  <Card title="langs" icon="brackets-curly">
+    Programming language runtimes including Rust, Go, Python, and Zig
+  </Card>
+  <Card title="lib" icon="books">
+    Shared libraries like DirectX-Headers, AppArmor, and Astal
+  </Card>
+  <Card title="misc" icon="box">
+    Miscellaneous packages that don't fit other categories
+  </Card>
+  <Card title="multimedia" icon="film">
+    Multimedia packages including FFmpeg, Carla, and GPU Screen Recorder
+  </Card>
+  <Card title="stardust" icon="star">
+    Stardust XR packages (server, atmosphere, protostar, etc.)
+  </Card>
+  <Card title="system" icon="server">
+    System-level utilities and configuration packages
+  </Card>
+  <Card title="terra" icon="mountain">
+    Core Terra infrastructure (release, GPG keys, macros)
+  </Card>
+  <Card title="themes" icon="palette">
+    Visual themes including Fluent, Orchis, and icon themes
+  </Card>
+  <Card title="tools" icon="wrench">
+    Command-line tools like yt-dlp, topgrade, and Arduino CLI
+  </Card>
+</CardGroup>
+
+## Package directory structure
+
+Each package follows a consistent directory structure:
+
+```
+anda/
+├─ apps/
+│  ├─ discord/
+│  │  ├─ anda.hcl         # Package manifest
+│  │  └─ discord.spec     # RPM spec file
+│  └─ anki/
+│     ├─ anda.hcl
+│     └─ anki.spec
+├─ tools/
+│  ├─ zola/
+│  │  ├─ anda.hcl
+│  │  └─ zola.spec
+│  └─ topgrade/
+│     ├─ anda.hcl
+│     └─ rust-topgrade.spec
+└─ lib/
+   └─ DirectX-Headers/
+      ├─ anda.hcl
+      └─ DirectX-Headers.spec
+```
+
+<Note>
+Some packages may have additional files like patches, sources, or configuration files alongside the manifest and spec file.
+</Note>
+
+## Root configuration
+
+The root `anda.hcl` file at the repository root defines global settings:
+
+```hcl anda.hcl
+config {
+	strip_prefix = "anda/"
+	strip_suffix = "/pkg"
+}
+
+project {}
+```
+
+This configuration:
+- Strips the `anda/` prefix from package paths
+- Strips the `/pkg` suffix from project names
+- Defines the root project context
+
+## Package groups
+
+The `comps.xml` file defines package groups for convenient installation:
+
+```xml comps.xml
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE comps PUBLIC "-//Red Hat, Inc.//DTD Comps info//EN" "comps.dtd">
+<comps>
+  <group>
+    <id>helium</id>
+    <name>Helium Theme and libhelium</name>
+    <description>The Application Framework and Theme for tauOS.</description>
+    <default>false</default>
+    <uservisible>true</uservisible>
+    <packagelist>
+      <packagereq type="default">libhelium</packagereq>
+      <packagereq type="default">helium-gtk-theme</packagereq>
+      <packagereq type="default">hydrogen-icon-theme</packagereq>
+    </packagelist>
+  </group>
+  <group>
+    <id>stardust-xr</id>
+    <name>Stardust XR</name>
+    <description>All Stardust XR packages needed to run the Stardust server</description>
+    <default>false</default>
+    <packagelist>
+      <packagereq type="default">stardust-xr-server</packagereq>
+      <packagereq type="default">stardust-xr-atmosphere</packagereq>
+      <packagereq type="default">stardust-xr-protostar</packagereq>
+      <!-- Additional packages omitted for brevity -->
+    </packagelist>
+  </group>
+</comps>
+```
+
+Package groups allow users to install related packages together:
+
+```bash
+sudo dnf group install stardust-xr
+```
+
+## Finding packages
+
+You can explore the repository structure in several ways:
+
+<AccordionGroup>
+  <Accordion title="Browse the monorepo">
+    Navigate the [Terra Packages repository](https://github.com/terrapkg/packages) on GitHub to explore packages by category.
+  </Accordion>
+  
+  <Accordion title="Search on pkgs.org">
+    Use [pkgs.org](https://fedora.pkgs.org/rawhide/terra/) to search for Terra packages with detailed metadata.
+  </Accordion>
+  
+  <Accordion title="Check Repology">
+    View package versions and updates on [Repology](https://repology.org/repository/terra_rawhide).
+  </Accordion>
+</AccordionGroup>
+
+## Best practices
+
+<Steps>
+  <Step title="Follow the category structure">
+    Place packages in the appropriate category directory based on their primary function.
+  </Step>
+  
+  <Step title="Use consistent naming">
+    Package directory names should match the primary package name defined in the spec file.
+  </Step>
+  
+  <Step title="Keep manifests simple">
+    Only include necessary configuration in `anda.hcl` files. Most packages need minimal configuration.
+  </Step>
+  
+  <Step title="Document special cases">
+    If a package requires unusual configuration or build steps, document them in the spec file or a README.
+  </Step>
+</Steps>
+
+<Card title="Next: Package manifests" icon="file-code" href="/concepts/package-manifests">
+  Learn about the `anda.hcl` manifest format and configuration options
+</Card>

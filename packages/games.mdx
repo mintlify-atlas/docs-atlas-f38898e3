@@ -1,0 +1,315 @@
+---
+title: Games
+description: Gaming packages, launchers, and utilities in Terra Packages
+---
+
+Terra Packages provides comprehensive gaming support including game launchers, compatibility tools, emulators, and gaming-specific utilities for an optimal gaming experience on Fedora.
+
+## Gaming Categories
+
+<CardGroup cols={2}>
+  <Card title="Game Launchers" icon="rocket">
+    Steam, Heroic, Prism Launcher, and more
+  </Card>
+  <Card title="Compatibility Layers" icon="layer-group">
+    Wine utilities, Proton tools, and wrappers
+  </Card>
+  <Card title="Emulators" icon="gamepad">
+    Console emulation and retro gaming
+  </Card>
+  <Card title="Gaming Utilities" icon="wrench">
+    Input devices, performance tools, and mods
+  </Card>
+</CardGroup>
+
+## Game Launchers
+
+<AccordionGroup>
+  <Accordion title="Steam">
+    **steam** - Official Steam client for Linux
+    
+    From the package configuration:
+    ```hcl
+    project pkg {
+      arches = ["i386"]
+      rpm {
+        spec = "steam.spec"
+      }
+      labels {
+        mock = 1
+      }
+    }
+    ```
+    
+    Spec file details:
+    ```spec
+    Name:           steam
+    Version:        1.0.0.85
+    Summary:        Installer for the Steam software distribution service
+    License:        Steam License Agreement and MIT
+    URL:            http://www.steampowered.com/
+    ExclusiveArch:  i686
+    ```
+    
+    <Note>
+      Steam package is 32-bit (i686) and includes multilib support for running games.
+    </Note>
+  </Accordion>
+
+  <Accordion title="Heroic Games Launcher">
+    **heroic-games-launcher** - Open source launcher for Epic Games, GOG, and Amazon Games
+    
+    Cross-platform game launcher supporting multiple storefronts with integrated Wine/Proton.
+  </Accordion>
+
+  <Accordion title="Minecraft Launchers">
+    Multiple Minecraft launcher options:
+    
+    - **prismlauncher** - Advanced Minecraft launcher with mod support
+    - **prismlauncher-nightly** - Nightly builds with latest features
+    - **minecraft-java** - Minecraft Java Edition launcher
+    
+    From PrismLauncher config:
+    ```hcl
+    project pkg {
+      rpm {
+        spec = "prismlauncher.spec"
+        extra_repos = ["https://packages.adoptium.net/artifactory/rpm/fedora/\\$releasever/\\$basearch"]
+      }
+      labels {
+        mock = 1
+      }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Anime Game Launchers">
+    Specialized launchers from launcher.moe:
+    
+    - **anime-game-launcher** - Genshin Impact launcher
+    - **honkers-launcher** - Honkai Impact 3rd launcher  
+    - **honkers-railway-launcher** - Honkai: Star Rail launcher
+    - **sleepy-launcher** - Zenless Zone Zero launcher
+    
+    These provide native Linux launchers for popular anime-style games.
+  </Accordion>
+</AccordionGroup>
+
+## Proton & Wine Tools
+
+<Note>
+  Proton compatibility tools enable Windows games to run on Linux seamlessly.
+</Note>
+
+### Proton Utilities
+
+<AccordionGroup>
+  <Accordion title="umu">
+    **umu** / **umu-wrapper** - Universal compatibility tool wrapper
+    
+    Unified launcher for Windows games using Proton/Wine with automatic configuration.
+  </Accordion>
+
+  <Accordion title="protontricks">
+    **protontricks** - Winetricks wrapper for Proton-based Steam games
+    
+    Easily install Windows dependencies for Steam games running through Proton.
+  </Accordion>
+
+  <Accordion title="SteamTinkerLaunch">
+    Available in two versions:
+    - **steamtinkerlaunch-stable** - Stable release
+    - **steamtinkerlaunch-git** - Development version
+    
+    Advanced wrapper tool for Steam games with extensive tweaking options including:
+    - Custom launch options
+    - Mod loader integration  
+    - Performance overlays
+    - Game-specific fixes
+  </Accordion>
+</AccordionGroup>
+
+### Game Mode & Sessions
+
+- **gamescope-session** - Gamescope compositor session
+- **gamescope-session-steam** - Steam-optimized gamescope session
+- **gamescope-session-opengamepadui** - OpenGamepadUI integration
+- **gamescope-session-ogui-steam** - Combined OGUI and Steam session
+- **terra-gamescope** - Terra-customized gamescope builds
+
+## Emulators
+
+<AccordionGroup>
+  <Accordion title="EmulationStation DE">
+    **emulationstation-de** - Frontend for browsing and launching games from various emulators
+    
+    All-in-one retro gaming frontend supporting multiple systems.
+  </Accordion>
+
+  <Accordion title="RPCS3">
+    **rpcs3** - PlayStation 3 emulator
+    
+    Open-source Sony PlayStation 3 emulator and debugger.
+  </Accordion>
+
+  <Accordion title="osu! Variants">
+    - **osu-lazer** - Official osu! client
+    - **opsu** - Open-source osu! client
+    - **osu-mime** - MIME type support for osu! files
+  </Accordion>
+</AccordionGroup>
+
+## Gaming Utilities
+
+### Input & Controller Support
+
+<AccordionGroup>
+  <Accordion title="Input Plumber">
+    **inputplumber** - Universal game input router
+    
+    Advanced input remapping and device management for gaming.
+  </Accordion>
+
+  <Accordion title="Controller Daemons">
+    - **joycond** - Nintendo Switch Joy-Con and Pro Controller daemon
+    - **powerbuttond** - Power button daemon for gaming handhelds
+  </Accordion>
+
+  <Accordion title="udev Rules">
+    Hardware-specific udev rules:
+    - **8bitdo-udev-rules** - 8BitDo controller support
+    - **wooting-udev-rules** - Wooting keyboard support
+    - **udev-joystick-blacklist** - Blacklist non-joystick devices
+  </Accordion>
+</AccordionGroup>
+
+### Performance & Management
+
+<AccordionGroup>
+  <Accordion title="SteamOS Manager">
+    **steamos-manager** - SteamOS configuration management tools
+    
+    Tools for managing SteamOS-like configurations on regular Linux distributions.
+  </Accordion>
+
+  <Accordion title="Notifications & Monitoring">
+    - **steam-notif-daemon** - Steam notification daemon
+    - **ScopeBuddy** - Performance monitoring for gaming
+  </Accordion>
+
+  <Accordion title="OpenGamepadUI">
+    **opengamepadui** - Gamepad-focused interface for PC gaming
+    
+    Console-like UI for managing and launching PC games with a gamepad.
+  </Accordion>
+
+  <Accordion title="PowerStation">
+    **powerstation** - Game library manager
+    
+    Unified library manager for games across multiple platforms.
+  </Accordion>
+</AccordionGroup>
+
+### Modding & Tools
+
+- **gmodpatchtool** - Garry's Mod patch utility
+- **vapor-mod-overlay** - Mod overlay system
+
+## Casual & Terminal Games
+
+<AccordionGroup>
+  <Accordion title="Terminal Games">
+    - **chess-tui** - Terminal chess game
+    - **2048-rs** - Rust implementation of 2048 game
+    - **typeracer** - Terminal typing game
+  </Accordion>
+</AccordionGroup>
+
+## Installation Examples
+
+### Install Steam with Tools
+
+```bash
+sudo dnf install steam protontricks steamtinkerlaunch-stable
+```
+
+### Install Heroic Games Launcher
+
+```bash
+sudo dnf install heroic-games-launcher
+```
+
+### Install Minecraft
+
+```bash
+sudo dnf install prismlauncher
+```
+
+### Install Emulation Setup
+
+```bash
+sudo dnf install emulationstation-de rpcs3
+```
+
+### Install Controller Support
+
+```bash
+sudo dnf install inputplumber joycond 8bitdo-udev-rules
+```
+
+### Install Console-Like Experience
+
+```bash
+sudo dnf install gamescope-session-steam opengamepadui
+```
+
+## Architecture Support
+
+<Warning>
+  Gaming packages have varying architecture support:
+  - **Steam**: i386 (32-bit) with multilib
+  - **Most launchers**: x86_64 only
+  - **Emulators**: Typically x86_64
+  - **udev rules**: noarch
+</Warning>
+
+## Gaming on Fedora Best Practices
+
+1. **Enable RPM Fusion**: Many gaming dependencies come from RPM Fusion repositories
+2. **Install Mesa drivers**: Ensure proper GPU driver support
+3. **Enable Proton**: Configure Steam to use Proton for Windows games
+4. **Use Gamescope**: Consider gamescope for better gaming performance
+5. **Configure Gamemode**: Install and enable gamemode for performance optimization
+
+## Available Games Packages Summary
+
+The games directory contains 35+ packages:
+
+**Launchers**:
+- Steam, Heroic Games Launcher
+- PrismLauncher, Minecraft Java
+- Anime game launchers (Genshin, Honkai series)
+
+**Compatibility**:
+- umu, protontricks, SteamTinkerLaunch
+- Gamescope variants
+
+**Emulators**:
+- EmulationStation DE, RPCS3
+- osu! variants
+
+**Utilities**:
+- inputplumber, joycond, powerbuttond
+- OpenGamepadUI, PowerStation, SteamOS Manager
+- udev rules (8BitDo, Wooting)
+
+**Games**:
+- chess-tui, 2048-rs, typeracer
+
+For the complete list, browse the `anda/games/` directory in the source repository.
+
+## See Also
+
+- [Multimedia](/packages/multimedia) - Video codecs and media tools
+- [System Tools](/packages/system-tools) - System performance utilities
+- [Applications](/packages/applications) - General applications

@@ -1,0 +1,258 @@
+---
+title: "Frequently Asked Questions"
+description: "Common questions about Terra Packages and the rolling-release repository"
+---
+
+## General Questions
+
+<AccordionGroup>
+  <Accordion title="What is Terra?">
+    Terra is a rolling-release Fedora repository for all the software you need. With Terra, you can install the latest packages knowing that quality and security are assured.
+
+    Terra provides a monorepo containing package manifests for all packages, ensuring consistent quality and rapid updates as soon as upstream projects release them.
+  </Accordion>
+
+  <Accordion title="What distributions does Terra support?">
+    Terra supports:
+    - **Fedora** (all editions including standard and immutable/atomic)
+    - **Enterprise Linux (EL)** (currently only EL10)
+
+    <Note>
+      Not all packages available in Terra are available in Terra EL at this time.
+    </Note>
+  </Accordion>
+
+  <Accordion title="What are Terra subrepos?">
+    Terra offers optional subrepos for specialized packages:
+
+    - **terra-release-extras** - Packages which conflict with Fedora packages, such as patched versions
+    - **terra-release-mesa** - Patched and codec-complete Mesa
+    - **terra-release-nvidia** - NVIDIA drivers
+    - **terra-release-multimedia** - Multimedia packages (work in progress)
+
+    <Warning>
+      Extra care and caution may be needed as some subrepo packages may conflict with other repositories such as RPM Fusion.
+    </Warning>
+  </Accordion>
+
+  <Accordion title="How is Terra different from other third-party repositories?">
+    Terra distinguishes itself through:
+    - **Rolling-release model** - Updates pushed as soon as upstream releases them
+    - **Quality assurance** - All packages go through quality and security checks
+    - **Monorepo structure** - All package manifests in one place for consistency
+    - **Active community** - Responsive support and transparent development
+  </Accordion>
+</AccordionGroup>
+
+## Installation & Setup
+
+<AccordionGroup>
+  <Accordion title="Do I need to uninstall RPM Fusion before using Terra?">
+    No, Terra can coexist with RPM Fusion. However, some packages in Terra subrepos (particularly `terra-release-extras`) may conflict with packages from other repositories.
+
+    Review the subrepo descriptions carefully before installing them to understand potential conflicts.
+  </Accordion>
+
+  <Accordion title="Can I use Terra on immutable/atomic Fedora editions?">
+    Yes! Terra supports immutable Fedora editions like Silverblue, Kinoite, and other atomic variants.
+
+    The installation process is slightly different:
+    ```bash
+    curl -fsSL https://github.com/terrapkg/subatomic-repos/raw/main/terra.repo | pkexec tee /etc/yum.repos.d/terra.repo
+    sudo rpm-ostree install terra-release
+    ```
+  </Accordion>
+
+  <Accordion title="What are the system requirements for Terra?">
+    Terra has the same system requirements as Fedora or Enterprise Linux. Since Terra is a package repository (not a distribution), it doesn't impose additional requirements beyond what the base system needs.
+
+    Individual packages may have their own dependencies, which will be automatically resolved by your package manager.
+  </Accordion>
+
+  <Accordion title="How do I verify my Terra installation?">
+    After installing `terra-release`, verify the installation:
+
+    ```bash
+    # Check if Terra repos are enabled
+    dnf repolist | grep terra
+
+    # Search for a package in Terra
+    dnf search --repo=terra <package-name>
+    ```
+
+    You should see Terra repositories listed in the output.
+  </Accordion>
+</AccordionGroup>
+
+## Package Management
+
+<AccordionGroup>
+  <Accordion title="How do I search for packages in Terra?">
+    You can search for Terra packages using multiple methods:
+
+    **Using DNF:**
+    ```bash
+    dnf search --repo=terra <package-name>
+    ```
+
+    **Online package databases:**
+    - [pkgs.org](https://fedora.pkgs.org/rawhide/terra/) - Comprehensive package listings
+    - [Repology](https://repology.org/repository/terra_rawhide) - Package version tracking
+  </Accordion>
+
+  <Accordion title="How quickly are upstream updates available in Terra?">
+    Terra follows a rolling-release model, which means updates are pushed as soon as the upstream project releases them and they pass Terra's quality and security checks.
+
+    This typically means you get updates faster than traditional repository models that wait for scheduled release cycles.
+  </Accordion>
+
+  <Accordion title="Can I request a package to be added to Terra?">
+    Yes! Terra welcomes package requests from the community. You can:
+
+    1. Check if the package has already been requested in the GitHub issues
+    2. Submit a package request following the contribution guidelines
+    3. Join the community chat to discuss your request
+
+    See the [contribution documentation](https://developer.fyralabs.com/terra/contributing) for detailed steps.
+  </Accordion>
+
+  <Accordion title="What if a package breaks after an update?">
+    If you experience issues after a package update:
+
+    1. Check the [troubleshooting guide](/reference/troubleshooting) for common solutions
+    2. Report the issue on the GitHub repository with details about your system and the problem
+    3. You can temporarily downgrade the package if needed while the issue is investigated
+
+    Terra maintainers respond to issues promptly and will work to resolve problems quickly.
+  </Accordion>
+</AccordionGroup>
+
+## Security & Privacy
+
+<AccordionGroup>
+  <Accordion title="How does Terra handle security vulnerabilities?">
+    Fyra Labs (Terra's maintainer) is committed to ensuring user security:
+
+    - Security vulnerabilities are addressed as soon as upstream releases patches
+    - Infrastructure and packaging vulnerabilities are taken seriously
+    - Any security breaches are publicly disclosed with full transparency
+
+    <Note>
+      Since Terra is a rolling-release repository, security updates are typically available very quickly after upstream releases them.
+    </Note>
+  </Accordion>
+
+  <Accordion title="How do I report a security vulnerability?">
+    For vulnerabilities in Terra's infrastructure or packaging:
+    - Use [GitHub's security advisory system](https://github.com/terrapkg/packages/security/advisories)
+    - Expect a response within 24 hours
+    - Please do not publicize vulnerabilities until the security advisory is published
+
+    For vulnerabilities in upstream packages:
+    - Report directly to the upstream project
+    - If the upstream is unmaintained or doesn't respond, file a security advisory with Terra
+  </Accordion>
+
+  <Accordion title="What data does Terra collect?">
+    Terra is a package repository and does not collect user data. The only information transmitted is standard package manager requests (which packages you're downloading) when you install or update packages.
+
+    This is the same level of information shared with any package repository you use.
+  </Accordion>
+
+  <Accordion title="Are Terra packages signed?">
+    Yes, Terra packages are GPG-signed. The initial installation uses `--nogpgcheck` only for the initial `terra-release` package, which contains the GPG keys. After that, all subsequent package installations are verified using GPG signatures.
+  </Accordion>
+</AccordionGroup>
+
+## Contributing
+
+<AccordionGroup>
+  <Accordion title="How can I contribute to Terra?">
+    There are many ways to contribute:
+
+    - **Submit package requests** for software you'd like to see in Terra
+    - **Report bugs** and issues you encounter
+    - **Contribute package manifests** for new software
+    - **Improve documentation** to help other users
+    - **Help other community members** in chat channels
+
+    Start by reading the [contribution guide](https://developer.fyralabs.com/terra/contributing) and [guidelines](https://developer.fyralabs.com/terra/guidelines).
+  </Accordion>
+
+  <Accordion title="Do I need packaging experience to contribute?">
+    Not necessarily! While packaging experience is helpful for contributing package manifests, there are many ways to contribute:
+
+    - Documentation improvements
+    - Testing packages and reporting issues
+    - Helping other users
+    - Suggesting improvements to the project
+
+    If you want to learn packaging, the Terra community is happy to help you get started.
+  </Accordion>
+
+  <Accordion title="What is the package acceptance criteria?">
+    Packages added to Terra must meet quality and security standards. Review the [guidelines](https://developer.fyralabs.com/terra/guidelines) for detailed criteria.
+
+    Key considerations include:
+    - Package quality and maintenance status
+    - License compatibility
+    - Security considerations
+    - Conflicts with existing packages
+  </Accordion>
+</AccordionGroup>
+
+## Technical Details
+
+<AccordionGroup>
+  <Accordion title="What is a monorepo and why does Terra use one?">
+    A monorepo (monolithic repository) means all package manifests are stored in a single Git repository. This approach provides:
+
+    - **Consistency** - Easier to maintain consistent packaging standards
+    - **Transparency** - All changes are visible in one place
+    - **Efficiency** - Simplified build and testing processes
+    - **Collaboration** - Easier for contributors to work across packages
+  </Accordion>
+
+  <Accordion title="How does Terra relate to Ultramarine Linux?">
+    Terra is developed by Fyra Labs, which also develops Ultramarine Linux. Terra serves as a package repository that can be used by Fedora, Enterprise Linux, and Ultramarine Linux users.
+
+    The community resources are shared between these projects.
+  </Accordion>
+
+  <Accordion title="What package formats does Terra use?">
+    Terra uses RPM package format, the standard for Fedora and Enterprise Linux distributions. This ensures compatibility with the package managers (DNF/YUM) on these systems.
+  </Accordion>
+
+  <Accordion title="Can I use Terra packages on other distributions?">
+    Terra is specifically designed for Fedora and Enterprise Linux. Using Terra packages on other distributions is not supported and may cause system issues.
+
+    If you're using a different distribution, check if Terra has a version for it or look for alternative repositories compatible with your system.
+  </Accordion>
+</AccordionGroup>
+
+## Getting Help
+
+<AccordionGroup>
+  <Accordion title="Where can I get help if I have issues?">
+    Multiple support channels are available:
+
+    - **Community chat** - [Join the community](https://wiki.ultramarine-linux.org/en/community/community/) for real-time help
+    - **Documentation** - Check the [Devdocs](https://developer.fyralabs.com/terra/)
+    - **GitHub Issues** - Report bugs or problems on the repository
+    - **Email** - Contact security@fyralabs.com for security-related questions
+
+    The community is active and responsive - you'll typically get help quickly.
+  </Accordion>
+
+  <Accordion title="Is there a troubleshooting guide?">
+    Yes! Check the [troubleshooting guide](/reference/troubleshooting) for solutions to common issues and problems.
+  </Accordion>
+</AccordionGroup>
+
+<Card
+  title="Still have questions?"
+  icon="messages"
+  href="/reference/community"
+>
+  Join our community channels to get help from Terra users and maintainers.
+</Card>

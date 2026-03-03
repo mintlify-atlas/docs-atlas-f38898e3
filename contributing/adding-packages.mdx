@@ -1,0 +1,507 @@
+---
+title: Adding New Packages
+description: Step-by-step guide to adding packages to Terra
+---
+
+This guide walks you through adding a new package to Terra Packages. We'll cover the complete process from choosing a package to submitting your pull request.
+
+## Before Adding a Package
+
+<Steps>
+  <Step title="Check if the package already exists">
+    Search the repository to avoid duplicates:
+
+    ```bash
+    # Search for existing packages
+    find anda/ -name "*package-name*"
+    
+    # Or search the Terra repository
+    dnf search package-name --repo=terra
+    ```
+  </Step>
+
+  <Step title="Check Fedora repositories">
+    Verify the package isn't already in Fedora's official repos:
+
+    ```bash
+    dnf search package-name
+    ```
+
+    <Note>
+      Terra is for packages not available in Fedora repos or for providing newer/modified versions.
+    </Note>
+  </Step>
+
+  <Step title="Verify the package is suitable">
+    Good candidates for Terra:
+    - Open source software (preferred)
+    - Actively maintained upstream
+    - Useful to multiple users
+    - Compatible with Fedora's licensing policies
+
+    <Warning>
+      Do not package proprietary software, malware, or tools that violate laws or ethical guidelines.
+    </Warning>
+  </Step>
+</Steps>
+
+## Package Structure
+
+Every Terra package requires these files in `anda/category/package-name/`:
+
+### Required Files
+
+#### 1. `anda.hcl` - Package Configuration
+
+The `anda.hcl` file defines the package project:
+
+<CodeGroup>
+```hcl Basic Package
+project pkg {
+  rpm {
+    spec = "package-name.spec"
+  }
+}
+```
+
+```hcl With Labels
+project pkg {
+  rpm {
+    spec = "package-name.spec"
+  }
+  labels {
+    mock = 1
+  }
+}
+```
+
+```hcl Multiple Labels
+project pkg {
+  rpm {
+    spec = "package-name.spec"
+  }
+  labels {
+    nightly = 1
+    large = 1
+    sccache = 0
+  }
+}
+```
+</CodeGroup>
+
+**Common labels:**
+- `mock = 1` - Build using Mock (standard RPM builds)
+- `nightly = 1` - Package is a nightly/development version
+- `large = 1` - Requires large build runner (for resource-intensive builds)
+- `sccache = 0` - Disable sccache for this package
+- `no_upload_srpms = 1` - Don't upload source RPMs
+
+#### 2. `*.spec` - RPM Spec File
+
+The spec file defines how to build the package. Here are real examples from Terra:
+
+<CodeGroup>
+```spec Simple Binary Package (typos.spec)
+%global crate typos-cli
+%define debug_package %{nil}
+
+Name:           typos
+Version:        1.44.0
+Release:        1%?dist
+Summary:        Source Code Spelling Correction
+
+License:        MIT OR Apache-2.0
+URL:            https://crates.io/crates/typos-cli
+Source0:        %{crates_source}
+Source1:        https://raw.githubusercontent.com/crate-ci/%{name}/refs/tags/v%{version}/LICENSE-MIT
+Source2:        https://raw.githubusercontent.com/crate-ci/%{name}/refs/tags/v%{version}/LICENSE-APACHE
+
+BuildRequires:  cargo-rpm-macros >= 24
+BuildRequires:  mold
+
+%description
+Finds and corrects spelling mistakes among source code.
+
+%prep
+%autosetup -n %{crate}-%{version}
+cp %{S:1} .
+cp %{S:2} .
+%cargo_prep_online
+
+%build
+%cargo_build
+%cargo_license_summary_online
+%{cargo_license_online} > LICENSE.dependencies
+
+%install
+install -Dm 755 target/rpm/%{name} -t %{buildroot}%{_bindir}
+
+%files
+%license LICENSE-MIT LICENSE-APACHE LICENSE.dependencies
+%doc README.md
+%{_bindir}/%{name}
+
+%changelog
+* Sun Dec 28 2025 metcya <metcya@gmail.com> - 1.40.0-1
+- Initial package
+```
+
+```spec Rust Package with Completions (zola.spec)
+Name:           zola
+Version:        0.22.1
+Release:        1%?dist
+Summary:        A fast static site generator in a single binary with everything built-in
+URL:            https://www.getzola.org
+Source0:        https://github.com/getzola/%{name}/archive/refs/tags/v%{version}.tar.gz
+License:        MIT
+BuildRequires:  cargo anda-srpm-macros cargo-rpm-macros mold glib2 libgcc clang
+
+Packager:       arbormoss <arbormoss@woodsprite.dev>
+
+%description
+%summary.
+
+%prep
+%autosetup -n %name-%version
+%cargo_prep_online
+
+%build
+%cargo_build
+mkdir -p completions
+target/rpm/zola completion bash > completions/%{name}
+target/rpm/zola completion elvish > completions/%{name}.elv
+target/rpm/zola completion fish > completions/%{name}.fish
+target/rpm/zola completion zsh > completions/_%{name}
+
+%install
+install -Dm755 target/rpm/zola %{buildroot}%{_bindir}/zola
+%cargo_license_summary_online
+%{cargo_license_online -a} > LICENSE.dependencies
+install -Dpm 0644 completions/%{name} -t %{buildroot}%{bash_completions_dir}
+install -Dpm 0644 completions/%{name}.elv -t %{buildroot}%{elvish_completions_dir}
+install -Dpm 0644 completions/%{name}.fish -t %{buildroot}%{fish_completions_dir}
+install -Dpm 0644 completions/_%{name} -t %{buildroot}%{zsh_completions_dir}
+
+%files
+%doc README.md CHANGELOG.md CONTRIBUTING.md EXAMPLES.md
+%license LICENSE
+%license LICENSE.dependencies
+%{_bindir}/zola
+%pkg_completion -Befz %{name}
+
+%changelog
+* Thu Nov 20 2025 arbormoss <arbormoss@woodsprite.dev>
+- Add Shell Completions
+
+* Wed Nov 19 2025 arbormoss <arbormoss@woodsprite.dev>
+- Intial Commit
+```
+
+```spec Complex Build with Patches (appimagelauncher.spec)
+%global git_commit 0f918015fa418affec32435d1c61c6ae473f2af5
+%global git_shortcommit %(c=%{git_commit}; echo ${c:0:7})
+
+Name:           appimagelauncher
+Version:        3.0.0.beta.3
+Release:        1%?dist
+Summary:        Helper application for Linux distributions serving as a kind of "entry point" for running and integrating AppImages
+
+License:        MIT
+URL:            https://github.com/TheAssassin/AppImageLauncher
+Source0:        %{url}/releases/download/v%{version}/appimagelauncher-%{git_shortcommit}.source.tar.xz
+Patch0:         use-fedora-qtlinguist.patch
+
+BuildRequires:  make
+BuildRequires:  cmake
+BuildRequires:  gcc-c++
+BuildRequires:  glib2-devel
+BuildRequires:  cairo-devel
+BuildRequires:  fuse-devel
+BuildRequires:  libarchive-devel
+BuildRequires:  pkgconfig(Qt5Core)
+BuildRequires:  qt5-linguist
+BuildRequires:  libcurl-devel
+BuildRequires:  boost-devel
+BuildRequires:  libappimage-devel
+BuildRequires:  libappimageupdate-devel
+BuildRequires:  systemd-rpm-macros
+BuildRequires:  librsvg2-devel
+BuildRequires:  libqtxdg-devel
+
+%description
+%{summary}.
+
+%prep
+%autosetup -n appimagelauncher-%{git_shortcommit}.source -p1
+
+%build
+%cmake -DBUILD_SHARED_LIBS:BOOL=OFF \
+ -DUSE_SYSTEM_LIBARCHIVE=ON \
+ -DUSE_SYSTEM_LIBCURL=ON \
+ -DUSE_SYSTEM_SQUASHFUSE=ON \
+ -DUSE_SYSTEM_BOOST=ON \
+ -DUSE_SYSTEM_CURL=ON \
+ -DUSE_SYSTEM_XDGUTILS=ON \
+ -DUSE_SYSTEM_LIBAPPIMAGE=ON
+
+%cmake_build
+
+%install
+%cmake_install
+
+%post
+echo "Installing AppImageLauncher as interpreter for AppImages"
+modprobe -v binfmt_misc
+(set -x; systemctl restart systemd-binfmt)
+
+%postun
+echo "Removing AppImageLauncher as interpreter for AppImages"
+(set -x; systemctl restart systemd-binfmt)
+
+%files
+%{_datadir}/appimagelauncher
+%{_datadir}/applications/appimagelauncher.desktop
+%{_datadir}/applications/appimagelaunchersettings.desktop
+%{_bindir}/AppImageLauncher
+%{_bindir}/AppImageLauncherSettings
+%{_bindir}/appimagelauncherd
+%{_bindir}/ail-cli
+%{_prefix}/lib/binfmt.d/appimage.conf
+%{_datadir}/icons/
+%{_libdir}/appimagelauncher
+%{_userunitdir}/appimagelauncherd.service
+%{_datadir}/mime/packages/appimage.xml
+%{_mandir}/man1/AppImageLauncher.1.gz
+
+%changelog
+* Mon Dec 26 2022 Cappy Ishihara <cappy@cappuchino.xyz>
+- Bumped release, added missing dependency
+
+* Tue Oct 25 2022 Cappy Ishihara <cappy@cappuchino.xyz>
+- Initial Release
+```
+</CodeGroup>
+
+### Optional Files
+
+#### `update.rhai` - Automated Updates
+
+Create an `update.rhai` script for automatic version updates:
+
+<CodeGroup>
+```rhai GitHub Releases
+rpm.version(gh("getzola/zola"));
+```
+
+```rhai Crates.io
+rpm.version(crates("typos-cli"));
+```
+
+```rhai Custom Logic
+let latest = gh("user/repo");
+if latest.contains("-beta") {
+    rpm.version(latest);
+    rpm.release("0.1.beta");
+} else {
+    rpm.version(latest);
+}
+```
+</CodeGroup>
+
+<Note>
+  Update scripts run automatically via GitHub Actions to keep packages current.
+</Note>
+
+#### Patches
+
+Include patch files if needed to fix build issues or apply Fedora-specific changes:
+
+```bash
+anda/category/package-name/
+├── anda.hcl
+├── package-name.spec
+├── update.rhai
+└── fix-build.patch
+```
+
+Reference patches in your spec file:
+
+```spec
+Patch0:         fix-build.patch
+
+%prep
+%autosetup -n %{name}-%{version} -p1
+```
+
+## Step-by-Step: Adding a Package
+
+<Steps>
+  <Step title="Choose the right category">
+    Create your package directory in the appropriate category:
+
+    ```bash
+    mkdir -p anda/tools/mypackage
+    cd anda/tools/mypackage
+    ```
+  </Step>
+
+  <Step title="Create anda.hcl">
+    ```bash
+    cat > anda.hcl << 'EOF'
+project pkg {
+  rpm {
+    spec = "mypackage.spec"
+  }
+}
+EOF
+    ```
+  </Step>
+
+  <Step title="Write the spec file">
+    Create `mypackage.spec` following Fedora packaging guidelines. Use existing packages as templates:
+
+    ```bash
+    # Look at similar packages for reference
+    cat ../similar-package/*.spec
+    ```
+
+    Key sections to include:
+    - Package metadata (Name, Version, Release, Summary, License, URL)
+    - Sources and patches
+    - BuildRequires and Requires
+    - %description
+    - %prep, %build, %install
+    - %files with proper file listings
+    - %changelog with your entry
+  </Step>
+
+  <Step title="Add update script (optional)">
+    If the package can be automatically updated:
+
+    ```bash
+    echo 'rpm.version(gh("upstream/repo"));' > update.rhai
+    ```
+  </Step>
+
+  <Step title="Test the build locally">
+    Build and test your package:
+
+    ```bash
+    # From repository root
+    anda build anda/tools/mypackage/pkg -c terra-frawhide-x86_64
+
+    # Check build output
+    ls -lh anda-build/rpm/rpms/x86_64/
+
+    # Install and test
+    sudo dnf install anda-build/rpm/rpms/x86_64/mypackage-*.rpm
+    mypackage --version
+    ```
+  </Step>
+
+  <Step title="Commit and push">
+    ```bash
+    git add anda/tools/mypackage/
+    git commit -m "feat: add mypackage version X.Y.Z"
+    git push origin add-mypackage
+    ```
+  </Step>
+
+  <Step title="Submit pull request">
+    Open a PR using the new package template. Fill out:
+
+    **What software is being packaged here?**
+    The name of the software and link to website and source code.
+
+    **Describe the motivation**
+    Why you want this package and how it provides value to users.
+
+    **Additional context**
+    Link to any relevant issues or upstream documentation.
+  </Step>
+</Steps>
+
+## Common Build Requirements
+
+### Rust Packages
+
+```spec
+BuildRequires:  cargo-rpm-macros >= 24
+BuildRequires:  mold
+BuildRequires:  anda-srpm-macros
+```
+
+### Python Packages
+
+```spec
+BuildRequires:  python3-devel
+BuildRequires:  python3-setuptools
+BuildRequires:  python3-pip
+```
+
+### CMake Projects
+
+```spec
+BuildRequires:  cmake
+BuildRequires:  gcc-c++
+BuildRequires:  make
+```
+
+### Qt Applications
+
+```spec
+BuildRequires:  pkgconfig(Qt5Core)
+BuildRequires:  pkgconfig(Qt5Widgets)
+BuildRequires:  qt5-linguist
+```
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Build fails with missing dependencies">
+    Install the build dependencies first:
+
+    ```bash
+    sudo dnf builddep anda/category/package/*.spec
+    ```
+
+    Add any missing BuildRequires to your spec file.
+  </Accordion>
+
+  <Accordion title="Cargo/Rust build fails">
+    Ensure you have:
+    - `cargo-rpm-macros >= 24` in BuildRequires
+    - `%cargo_prep_online` in %prep
+    - `%cargo_build` in %build
+    - Proper license handling with `%cargo_license_online`
+  </Accordion>
+
+  <Accordion title="File conflicts during install">
+    Check if files overlap with other packages:
+
+    ```bash
+    rpm -qf /path/to/conflicting/file
+    ```
+
+    Either remove the file or add a Conflicts: directive.
+  </Accordion>
+
+  <Accordion title="Package builds but doesn't work">
+    Verify:
+    - All runtime dependencies are listed in Requires:
+    - File permissions are correct in %files
+    - Binaries are in the right location (%{_bindir}, etc.)
+    - Any required data files are installed
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Package Guidelines" icon="book" href="/contributing/package-guidelines">
+    Learn best practices for packaging
+  </Card>
+  <Card title="Testing Packages" icon="flask" href="/contributing/testing">
+    Test your packages thoroughly
+  </Card>
+</CardGroup>

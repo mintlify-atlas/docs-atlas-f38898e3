@@ -1,0 +1,231 @@
+---
+title: Mesa Graphics
+description: Patched and updated Mesa graphics stack
+---
+
+## Overview
+
+The Terra Mesa subrepo provides a patched and updated version of Mesa, the open-source graphics library that powers graphics on Linux systems. This version may include newer features, performance improvements, and hardware support that might cause conflicts with Fedora's standard Mesa packages.
+
+<Warning>
+  Installing Mesa from this repository will replace Fedora's default Mesa packages. This affects all graphics operations on your system.
+</Warning>
+
+## What is Mesa?
+
+Mesa is a comprehensive graphics library that implements:
+- **OpenGL** - Cross-platform 3D graphics API
+- **Vulkan** - Modern high-performance graphics API
+- **OpenCL** - Heterogeneous parallel programming
+- **VA-API** - Video acceleration API
+
+## Version Information
+
+The current Terra Mesa package:
+
+```spec
+Name:           mesa
+Summary:        Mesa graphics libraries
+Epoch:          1
+Version:        26.0.1
+Release:        2
+License:        MIT AND BSD-3-Clause AND SGI-B-2.0
+URL:            https://mesa3d.org
+```
+
+<Note>
+  Version 26.0.1 provides the latest Mesa features and driver improvements. The Terra version includes patches and optimizations not yet available in Fedora stable.
+</Note>
+
+## Supported Hardware
+
+### Intel Graphics
+- **Crocus** - Intel Gen 4-7 (i965)
+- **Iris** - Intel Gen 8+ (Broadwell and newer)
+- **Intel Vulkan** - Full Vulkan support including ray tracing on supported hardware
+- **Intel Hasvk** - Haswell Vulkan driver
+
+### AMD Graphics
+- **RadeonSI** - AMD GCN and RDNA GPUs (OpenGL)
+- **RADV** - AMD Vulkan driver (RDNA and newer)
+- **R300** - Legacy AMD/ATI Radeon (R300-R500)
+- **R600** - AMD/ATI Radeon (R600-Northern Islands)
+
+### NVIDIA Graphics (Nouveau)
+- **NVK** - NVIDIA Vulkan driver (experimental)
+- Nouveau OpenGL support
+
+### ARM Graphics
+- **Panfrost** - Mali Midgard/Bifrost GPUs
+- **Asahi** - Apple Silicon graphics (M1/M2)
+- **Freedreno** - Qualcomm Adreno GPUs
+- **Lima** - ARM Mali 400/450
+- **VC4/V3D** - Broadcom VideoCore (Raspberry Pi)
+- **Etnaviv** - Vivante GPUs
+- **Tegra** - NVIDIA Tegra SoCs
+
+### Other Drivers
+- **VMware** - VMware SVGA virtual GPU
+- **Virtio** - Virtio-GPU virtual driver
+- **D3D12** - Direct3D 12 translation layer
+- **SwRast** - Software rasterizer
+
+## Vulkan Drivers
+
+The Terra Mesa package includes the following Vulkan drivers:
+
+```spec
+vulkan_drivers = swrast,amd,intel,intel_hasvk,asahi,broadcom,
+                 freedreno,panfrost,imagination,nouveau,virtio,
+                 microsoft-experimental
+```
+
+## Repository Configuration
+
+```ini
+[terra-mesa]
+name=Terra $releasever (Mesa)
+metalink=https://tetsudou.fyralabs.com/metalink?repo=terra$releasever-mesa&arch=$basearch
+metadata_expire=6h
+type=rpm
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-terra$releasever-mesa
+repo_gpgcheck=1
+enabled=1
+priority=80
+```
+
+<Note>
+  Priority 80 ensures Mesa packages from this repository take precedence over Fedora's default Mesa.
+</Note>
+
+## Installation
+
+<Steps>
+  <Step title="Enable the repository">
+    Install the Terra Mesa release package:
+    
+    ```bash
+    sudo dnf install terra-release-mesa
+    ```
+  </Step>
+  
+  <Step title="Update Mesa packages">
+    Update to Terra's Mesa packages:
+    
+    ```bash
+    sudo dnf distro-sync mesa\*
+    ```
+    
+    The `distro-sync` command ensures all Mesa packages are switched to the Terra repository versions.
+  </Step>
+  
+  <Step title="Reboot your system">
+    Reboot to ensure the new graphics stack is fully loaded:
+    
+    ```bash
+    sudo reboot
+    ```
+  </Step>
+  
+  <Step title="Verify installation">
+    Check your Mesa version:
+    
+    ```bash
+    glxinfo | grep "OpenGL version"
+    ```
+    
+    For Vulkan:
+    
+    ```bash
+    vulkaninfo | grep "driverVersion"
+    ```
+  </Step>
+</Steps>
+
+## Features and Optimizations
+
+### Performance
+
+<Note>
+  LTO (Link-Time Optimization) is disabled for Mesa to maintain compatibility with certain games and applications. See [Red Hat Bugzilla #1862771](https://bugzilla.redhat.com/show_bug.cgi?id=1862771) for details.
+</Note>
+
+### Additional Libraries
+
+The build includes support for:
+- **libunwind** - Better stack unwinding for debugging
+- **lm_sensors** - GPU temperature monitoring
+- **Valgrind** - Memory debugging support (on supported architectures)
+
+### Supported Architectures
+
+Terra Mesa is built for:
+- `x86_64` - 64-bit Intel/AMD
+- `aarch64` - 64-bit ARM
+- `i386` - 32-bit Intel/AMD (for multilib support)
+
+## OpenCL Support
+
+For AMD GPUs, OpenCL support is included by default. This enables GPU computing for:
+- Video editing and encoding
+- 3D rendering
+- Machine learning workloads
+- Scientific computing
+
+## Troubleshooting
+
+### Graphics issues after installation
+
+If you experience graphics problems:
+
+1. Check driver status:
+   ```bash
+   dmesg | grep -i "drm\|gpu\|graphics"
+   ```
+
+2. Verify Mesa version:
+   ```bash
+   rpm -qa | grep mesa
+   ```
+
+3. Test OpenGL:
+   ```bash
+   glxinfo -B
+   ```
+
+### Reverting to Fedora Mesa
+
+To switch back to Fedora's Mesa:
+
+```bash
+sudo dnf config-manager --set-disabled terra-mesa
+sudo dnf distro-sync mesa\*
+sudo reboot
+```
+
+## Gaming Performance
+
+For gaming, Terra Mesa provides:
+- Latest Vulkan API support
+- ACO shader compiler for AMD GPUs
+- Optimized drivers for recent games
+- Better compatibility with Proton/Wine
+
+## Source Code
+
+Mesa source packages are available:
+
+```bash
+sudo dnf config-manager --set-enabled terra-mesa-source
+dnf download --source mesa
+```
+
+## License Information
+
+Mesa is licensed under:
+- MIT License (primary)
+- BSD-3-Clause
+- SGI-B-2.0
+
+Special licensing note for MLAA (Morphological Antialiasing) code is included in the package documentation.

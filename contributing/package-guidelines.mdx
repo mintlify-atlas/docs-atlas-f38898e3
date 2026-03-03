@@ -1,0 +1,603 @@
+---
+title: Package Guidelines
+description: Best practices and standards for Terra packages
+---
+
+This guide outlines the standards and best practices for packaging software in Terra. Following these guidelines ensures consistency, maintainability, and quality across all packages.
+
+## General Principles
+
+### Follow Fedora Standards
+
+Terra packages should follow [Fedora Packaging Guidelines](https://docs.fedoraproject.org/en-US/packaging-guidelines/) unless Terra-specific exceptions apply.
+
+<Note>
+  When in doubt, check how Fedora packages similar software and follow their conventions.
+</Note>
+
+### Quality Over Quantity
+
+- Package software that provides real value to users
+- Ensure packages are well-tested before submission
+- Maintain packages you contribute - don't abandon them
+- Upstream bug fixes when possible rather than patching locally
+
+### Respect Licensing
+
+- Only package software with compatible licenses (MIT, GPL, Apache, BSD, etc.)
+- Always include license files in packages
+- Document license information accurately in spec files
+- For Rust packages, include dependency licenses
+
+## Spec File Standards
+
+### Header Section
+
+Every spec file must have complete metadata:
+
+```spec
+Name:           package-name
+Version:        1.2.3
+Release:        1%?dist
+Summary:        Brief one-line description of the package
+
+License:        MIT
+URL:            https://upstream-project-url.com
+Source0:        https://example.com/package-name-%{version}.tar.gz
+
+BuildRequires:  dependency1
+BuildRequires:  dependency2
+Requires:       runtime-dependency
+```
+
+<Warning>
+  The `%?dist` macro is required in Release to ensure proper version sorting across Fedora releases.
+</Warning>
+
+### Version and Release
+
+- **Version**: Upstream version number (1.2.3, not v1.2.3)
+- **Release**: Start at 1, increment for packaging changes
+- Use `%?dist` macro for distribution tag
+
+```spec
+Version:        2.5.0
+Release:        1%?dist
+```
+
+For pre-releases:
+
+```spec
+Version:        2.5.0
+Release:        0.1.beta2%?dist
+```
+
+### Source Handling
+
+<CodeGroup>
+```spec GitHub Releases
+URL:            https://github.com/user/project
+Source0:        %{url}/archive/refs/tags/v%{version}.tar.gz
+```
+
+```spec Crates.io
+%global crate package-name
+URL:            https://crates.io/crates/%{crate}
+Source0:        %{crates_source}
+```
+
+```spec Multiple Sources
+Source0:        https://example.com/package-%{version}.tar.gz
+Source1:        https://example.com/LICENSE-MIT
+Source2:        package.service
+```
+</CodeGroup>
+
+### Dependencies
+
+#### BuildRequires
+
+List all build-time dependencies:
+
+```spec
+BuildRequires:  gcc
+BuildRequires:  make
+BuildRequires:  pkgconfig(libfoo) >= 1.2
+BuildRequires:  cargo-rpm-macros >= 24
+```
+
+<Note>
+  Use `pkgconfig(name)` for library dependencies when possible - it's more portable.
+</Note>
+
+#### Requires
+
+Runtime dependencies are often auto-detected, but specify when needed:
+
+```spec
+Requires:       some-runtime-dependency
+Requires:       python3-requests >= 2.20
+```
+
+For library packages:
+
+```spec
+Requires:       %{name}-libs%{?_isa} = %{version}-%{release}
+```
+
+### Build Sections
+
+#### %prep - Prepare Sources
+
+```spec
+%prep
+%autosetup -n %{name}-%{version} -p1
+```
+
+For Rust packages:
+
+```spec
+%prep
+%autosetup -n %{crate}-%{version}
+%cargo_prep_online
+```
+
+#### %build - Compile
+
+<CodeGroup>
+```spec Standard Autotools
+%build
+%configure
+%make_build
+```
+
+```spec CMake
+%build
+%cmake -DOPTION=VALUE
+%cmake_build
+```
+
+```spec Rust/Cargo
+%build
+%cargo_build
+%cargo_license_summary_online
+%{cargo_license_online} > LICENSE.dependencies
+```
+
+```spec Python
+%build
+%py3_build
+```
+</CodeGroup>
+
+#### %install - Install Files
+
+```spec
+%install
+%make_install
+
+# Or for manual installation
+install -Dm755 binary %{buildroot}%{_bindir}/binary
+install -Dm644 config.conf %{buildroot}%{_sysconfdir}/package/config.conf
+```
+
+For Rust packages:
+
+```spec
+%install
+install -Dm 755 target/rpm/%{name} -t %{buildroot}%{_bindir}
+```
+
+### File Lists
+
+Be specific about what files are included:
+
+```spec
+%files
+%license LICENSE
+%doc README.md CHANGELOG.md
+%{_bindir}/package-name
+%{_datadir}/package-name/
+%config(noreplace) %{_sysconfdir}/package/config.conf
+```
+
+<Warning>
+  Never use overly broad wildcards like `%{_bindir}/*` - be explicit about files.
+</Warning>
+
+#### Common File Locations
+
+- `%{_bindir}` - `/usr/bin` - User executables
+- `%{_sbindir}` - `/usr/sbin` - System executables  
+- `%{_libdir}` - `/usr/lib64` (or `/usr/lib`) - Libraries
+- `%{_datadir}` - `/usr/share` - Architecture-independent data
+- `%{_sysconfdir}` - `/etc` - Configuration files
+- `%{_mandir}` - `/usr/share/man` - Man pages
+- `%{_docdir}` - `/usr/share/doc` - Documentation
+
+### Shell Completions
+
+For tools with shell completions:
+
+```spec
+%build
+mkdir -p completions
+target/rpm/%{name} completion bash > completions/%{name}
+target/rpm/%{name} completion fish > completions/%{name}.fish
+target/rpm/%{name} completion zsh > completions/_%{name}
+
+%install
+install -Dpm 0644 completions/%{name} -t %{buildroot}%{bash_completions_dir}
+install -Dpm 0644 completions/%{name}.fish -t %{buildroot}%{fish_completions_dir}
+install -Dpm 0644 completions/_%{name} -t %{buildroot}%{zsh_completions_dir}
+
+%files
+%pkg_completion -Bfz %{name}
+```
+
+### Scriptlets
+
+Use scriptlets for system integration:
+
+<CodeGroup>
+```spec Systemd Services
+%post
+%systemd_post package.service
+
+%preun
+%systemd_preun package.service
+
+%postun
+%systemd_postun_with_restart package.service
+```
+
+```spec User Management
+%pre
+getent group package >/dev/null || groupadd -r package
+getent passwd package >/dev/null || \
+    useradd -r -g package -d /var/lib/package -s /sbin/nologin package
+exit 0
+```
+
+```spec Kernel Modules
+%post
+modprobe -v module-name || :
+
+%postun
+rmmod module-name || :
+```
+</CodeGroup>
+
+### Changelog
+
+Maintain an accurate changelog:
+
+```spec
+%changelog
+* Thu Nov 20 2025 Your Name <your.email@example.com> - 1.2.3-1
+- Update to version 1.2.3
+- Add shell completions
+- Fix build on aarch64
+
+* Wed Oct 15 2025 Your Name <your.email@example.com> - 1.2.2-2
+- Add missing runtime dependency
+
+* Mon Oct 01 2025 Your Name <your.email@example.com> - 1.2.2-1
+- Initial package
+```
+
+<Note>
+  Use `rpmdev-bumpspec` to automatically add changelog entries with proper formatting.
+</Note>
+
+## Terra-Specific Macros
+
+### anda-srpm-macros
+
+For Rust packages, use Terra's macros:
+
+```spec
+BuildRequires:  anda-srpm-macros
+BuildRequires:  cargo-rpm-macros >= 24
+```
+
+These provide:
+- `%{crates_source}` - Automatically construct crates.io URLs
+- Cargo build macros with Terra optimizations
+
+### Vendor Definition
+
+Packages built in Terra CI include:
+
+```spec
+# Set automatically in CI builds
+%define vendor Terra
+```
+
+## Language-Specific Guidelines
+
+### Rust Packages
+
+<Steps>
+  <Step title="Use standard macros">
+    ```spec
+    BuildRequires:  cargo-rpm-macros >= 24
+    BuildRequires:  mold
+    BuildRequires:  anda-srpm-macros
+    ```
+  </Step>
+
+  <Step title="Prepare with cargo">
+    ```spec
+    %prep
+    %autosetup -n %{crate}-%{version}
+    %cargo_prep_online
+    ```
+  </Step>
+
+  <Step title="Handle licenses">
+    ```spec
+    %build
+    %cargo_build
+    %cargo_license_summary_online
+    %{cargo_license_online} > LICENSE.dependencies
+
+    %files
+    %license LICENSE.dependencies
+    ```
+  </Step>
+</Steps>
+
+### Python Packages
+
+```spec
+BuildRequires:  python3-devel
+BuildRequires:  python3-setuptools
+
+%prep
+%autosetup -n %{name}-%{version}
+
+%build
+%py3_build
+
+%install
+%py3_install
+
+%files
+%{python3_sitelib}/%{name}/
+%{python3_sitelib}/%{name}-%{version}-py%{python3_version}.egg-info/
+```
+
+### Go Packages
+
+```spec
+BuildRequires:  golang >= 1.20
+
+%prep
+%autosetup -n %{name}-%{version}
+
+%build
+export GOFLAGS="-mod=vendor"
+go build -o %{name} .
+
+%install
+install -Dm755 %{name} %{buildroot}%{_bindir}/%{name}
+```
+
+## Packaging Best Practices
+
+### Directory Organization
+
+Organize packages by category:
+
+```
+anda/
+├── tools/          # CLI tools and utilities
+├── apps/           # Desktop applications
+├── system/         # System packages and drivers
+├── themes/         # Visual themes
+├── fonts/          # Font packages
+├── games/          # Gaming software
+└── terra/          # Terra infrastructure
+```
+
+### Naming Conventions
+
+<CodeGroup>
+```text Standard Package
+anda/tools/package-name/
+├── anda.hcl
+├── package-name.spec
+└── update.rhai
+```
+
+```text Rust Package
+anda/tools/package-name/
+├── anda.hcl
+├── rust-package-name.spec
+└── update.rhai
+```
+
+```text Variant Packages
+anda/system/package/
+├── stable/
+│   ├── anda.hcl
+│   └── package.spec
+└── nightly/
+    ├── anda.hcl
+    └── package-nightly.spec
+```
+</CodeGroup>
+
+### Patch Management
+
+Keep patches organized and documented:
+
+```spec
+Patch0:         fix-build-flags.patch
+Patch1:         use-system-libraries.patch
+
+%prep
+%autosetup -n %{name}-%{version} -p1
+```
+
+Patch naming:
+- Descriptive names explaining what the patch does
+- Numbered sequentially (0001-fix.patch, 0002-feature.patch)
+- Include upstream PR/issue numbers when applicable
+
+### Security Considerations
+
+<Warning>
+  Never package software with known critical vulnerabilities. Check upstream security advisories.
+</Warning>
+
+- Keep packages updated with security fixes
+- Don't disable security features (PIE, RELRO, stack protector)
+- Validate checksums for sources
+- Review code before packaging unknown software
+
+### Performance Optimization
+
+#### Use mold Linker (Rust/C++)
+
+```spec
+BuildRequires:  mold
+
+%build
+%cargo_build
+# mold is automatically used via macros
+```
+
+#### Enable Compiler Optimizations
+
+```spec
+%build
+export CFLAGS="%{optflags}"
+export CXXFLAGS="%{optflags}"
+%configure
+%make_build
+```
+
+#### Parallel Builds
+
+```spec
+%build
+%make_build -j%{?_smp_mflags}
+```
+
+## Testing Requirements
+
+Before submitting packages:
+
+<Steps>
+  <Step title="Build successfully">
+    ```bash
+    anda build anda/category/package/pkg -c terra-frawhide-x86_64
+    ```
+  </Step>
+
+  <Step title="Install and run">
+    ```bash
+    sudo dnf install anda-build/rpm/rpms/x86_64/package-*.rpm
+    package --version
+    # Test main functionality
+    ```
+  </Step>
+
+  <Step title="Check rpmlint">
+    ```bash
+    rpmlint anda-build/rpm/rpms/x86_64/package-*.rpm
+    ```
+
+    Address warnings and errors (some can be waived if justified).
+  </Step>
+
+  <Step title="Verify file ownership">
+    ```bash
+    rpm -qlp anda-build/rpm/rpms/x86_64/package-*.rpm
+    ```
+
+    Ensure all files have proper locations and permissions.
+  </Step>
+</Steps>
+
+## Common Issues and Solutions
+
+<AccordionGroup>
+  <Accordion title="File not found during build">
+    Ensure source URLs are correct and accessible:
+
+    ```bash
+    spectool -g package.spec
+    ```
+
+    Check that %{version} and %{name} macros are expanded correctly.
+  </Accordion>
+
+  <Accordion title="Debuginfo package errors">
+    For some packages, disable debuginfo:
+
+    ```spec
+    %global debug_package %{nil}
+    ```
+
+    Only do this when necessary (e.g., pre-compiled binaries).
+  </Accordion>
+
+  <Accordion title="Rust dependency build failures">
+    Update Cargo.lock or use `%cargo_prep_online` to fetch dependencies:
+
+    ```spec
+    %prep
+    %autosetup -n %{crate}-%{version}
+    %cargo_prep_online
+    ```
+  </Accordion>
+
+  <Accordion title="Cross-architecture builds fail">
+    Add architecture-specific conditionals:
+
+    ```spec
+    %ifarch x86_64
+    BuildRequires: some-x86-only-dep
+    %endif
+
+    %ifarch aarch64
+    BuildRequires: some-arm-only-dep
+    %endif
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Review Checklist
+
+Before submitting your package, verify:
+
+- [ ] Spec file has complete metadata (Name, Version, License, URL, Summary)
+- [ ] All sources have checksums or use trusted URLs
+- [ ] BuildRequires lists all build dependencies
+- [ ] License files are included in %files
+- [ ] Files are installed to standard locations
+- [ ] Package builds successfully on x86_64 and aarch64
+- [ ] Package installs and runs correctly
+- [ ] Changelog entry is present and formatted correctly
+- [ ] No unnecessary files are packaged
+- [ ] Update script (update.rhai) works if present
+
+## Additional Resources
+
+<CardGroup cols={2}>
+  <Card title="Fedora Packaging Guidelines" icon="book" href="https://docs.fedoraproject.org/en-US/packaging-guidelines/">
+    Official Fedora packaging standards
+  </Card>
+  <Card title="RPM Packaging Guide" icon="box" href="https://rpm-packaging-guide.github.io/">
+    Comprehensive RPM packaging tutorial
+  </Card>
+  <Card title="Testing Guide" icon="flask" href="/contributing/testing">
+    How to test your packages
+  </Card>
+  <Card title="Cargo RPM Macros" icon="rust" href="https://pagure.io/fedora-rust/rust2rpm">
+    Rust packaging tools
+  </Card>
+</CardGroup>

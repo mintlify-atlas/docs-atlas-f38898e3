@@ -1,0 +1,724 @@
+---
+title: RPM Spec File Reference
+description: Comprehensive guide to writing RPM spec files for Terra packages
+---
+
+## Overview
+
+RPM spec files define how packages are built, installed, and packaged. In Terra, spec files follow Fedora conventions with some Terra-specific additions.
+
+## Basic Structure
+
+Every spec file contains these main sections:
+
+1. **Preamble** - Metadata (Name, Version, License, etc.)
+2. **%prep** - Prepare source code
+3. **%build** - Compile the software
+4. **%install** - Install into buildroot
+5. **%files** - List of files to package
+6. **%changelog** - Version history
+
+## Complete Example
+
+<CodeGroup>
+```spec Simple Binary Package (discord.spec)
+%define debug_package %{nil}
+%global _build_id_links none
+
+# Exclude private libraries
+%global __requires_exclude libffmpeg.so
+%global __provides_exclude_from %{_datadir}/%{name}/.*\\.so
+
+Name:           discord
+Version:        0.0.127
+Release:        1%?dist
+Summary:        Free Voice and Text Chat for Gamers
+URL:            https://discord.com
+Source0:        https://dl.discordapp.net/apps/linux/%{version}/discord-%{version}.tar.gz
+License:        https://discord.com/terms
+Requires:       glibc GConf2
+Requires:       nspr >= 4.13
+Requires:       nss >= 3.27
+Requires:       libX11 >= 1.6
+Requires:       libXtst >= 1.2
+Group:          Applications/Internet
+ExclusiveArch:  x86_64
+
+%description
+All-in-one voice and text chat for gamers that's free, secure, and works on
+both your desktop and phone.
+
+%prep
+%autosetup -n Discord
+
+%build
+
+%install
+rm -rf $RPM_BUILD_ROOT
+mkdir -p %{buildroot}%{_bindir}
+mkdir -p %{buildroot}%{_datadir}/discord
+cp -rv * %{buildroot}%{_datadir}/discord
+mkdir -p %{buildroot}%{_datadir}/applications/
+mkdir -p %{buildroot}%{_datadir}/pixmaps
+ln -s %_datadir/discord/discord.desktop %{buildroot}%{_datadir}/applications/discord.desktop
+ln -s %_datadir/discord/discord.png %{buildroot}%{_datadir}/pixmaps/discord.png
+ln -s %_datadir/discord/Discord %buildroot%_bindir/discord
+
+%files
+%_bindir/discord
+%{_datadir}/discord/
+%{_datadir}/applications/discord.desktop
+%{_datadir}/pixmaps/discord.png
+
+%changelog
+* Thu Jan 19 2023 madonuko <mado@fyralabs.com> - 0.0.143-1
+- Initial package
+```
+
+```spec Source Build Package (anki.spec)
+Name:           anki
+Version:        25.09.2
+Release:        1%?dist
+Summary:        Flashcard program for using space repetition learning
+License:        AGPL-3.0-or-later AND GPL-3.0-or-later AND MIT AND BSD-3-Clause
+URL:            https://apps.ankiweb.net/
+BuildRequires:  python3-devel python3-setuptools python3-protobuf
+BuildRequires:  make mold cargo git rsync ninja-build nodejs
+Requires:       python3-sqlalchemy python3-matplotlib python3-decorator
+Requires:       python3-pyqt6-webengine
+Recommends:     (mpv or mpv-nightly)
+Obsoletes:      anki <= 2.1.15
+Conflicts:      anki-qt5
+Patch0:         0001-No-update.patch
+
+%description
+Anki is a program designed to help you remember facts (such as words and
+phrases in a foreign language) as easily, quickly and efficiently as possible.
+Anki is based on a theory called spaced repetition.
+
+%prep
+rm -rf *
+git clone https://github.com/ankitects/anki .
+git checkout %{version}
+%patch 0 -p1
+
+%build
+export RELEASE=1
+export PYTHONPATH=%_libdir/python3/dist-packages
+cargo update
+mold -run ./tools/build
+
+%install
+for file in out/wheels/*.whl; do
+    python -m installer --destdir="%{buildroot}" $file
+done
+
+install -Dm644 qt/bundle/lin/anki.desktop %{buildroot}/%{_datadir}/applications/anki.desktop
+install -Dm644 qt/bundle/lin/anki.png %{buildroot}/%{_datadir}/pixmaps/anki.png
+
+sed "s*^#!/usr/bin/python\$*#!/usr/bin/python3*" %{buildroot}/%{_bindir}/anki > %{buildroot}/%{_bindir}/anki1
+rm %{buildroot}/%{_bindir}/anki
+mv %{buildroot}/%{_bindir}/anki1 %{buildroot}/%{_bindir}/anki
+
+find %{buildroot} -iname __pycache__ | xargs -r rm -rf
+find %{buildroot} -iname direct_url.json | xargs -r rm -rf
+
+chmod 755 %{buildroot}%{_bindir}/anki
+
+%fdupes %_libdir/python*/site-packages/_aqt/data/
+
+%files
+%license LICENSE*
+%doc README*
+%{_bindir}/anki
+%{_datadir}/applications/anki.desktop
+%{_datadir}/pixmaps/anki.png
+%_libdir/python*/site-packages/aqt/
+%_libdir/python*/site-packages/aqt-%{version}.dist-info/
+%_libdir/python*/site-packages/_aqt/
+%_libdir/python*/site-packages/anki/
+%_libdir/python*/site-packages/anki-%{version}.dist-info/
+
+%changelog
+* Tue Jan 3 2023 madonuko <mado@fyralabs.com> - 2.1.60
+- Initial package
+```
+</CodeGroup>
+
+## Preamble Section
+
+### Required Fields
+
+<ParamField path="Name" type="string" required>
+  Package name. Must match the spec filename and be lowercase with hyphens.
+  
+  ```spec
+  Name:           discord
+  ```
+</ParamField>
+
+<ParamField path="Version" type="string" required>
+  Upstream version number. Use actual version, not git commits.
+  
+  ```spec
+  Version:        25.09.2
+  ```
+</ParamField>
+
+<ParamField path="Release" type="string" required>
+  Package release number. Increment for package-only changes.
+  
+  ```spec
+  Release:        1%?dist
+  ```
+  
+  <Note>
+  Always use `%?dist` macro to ensure distribution-specific releases.
+  </Note>
+</ParamField>
+
+<ParamField path="Summary" type="string" required>
+  One-line description. Should not end with a period.
+  
+  ```spec
+  Summary:        Free Voice and Text Chat for Gamers
+  ```
+</ParamField>
+
+<ParamField path="License" type="string" required>
+  SPDX license identifier(s). Use `AND` for multiple licenses.
+  
+  ```spec
+  # Single license
+  License:        GPL-3.0-or-later
+  
+  # Multiple licenses
+  License:        AGPL-3.0-or-later AND GPL-3.0-or-later AND MIT AND BSD-3-Clause
+  ```
+</ParamField>
+
+<ParamField path="URL" type="string" required>
+  Project homepage or repository URL.
+  
+  ```spec
+  URL:            https://discord.com
+  ```
+</ParamField>
+
+### Source Files
+
+<ParamField path="Source0" type="string">
+  Primary source archive URL. Use `%{version}` macro.
+  
+  ```spec
+  Source0:        https://dl.discordapp.net/apps/linux/%{version}/discord-%{version}.tar.gz
+  ```
+</ParamField>
+
+<ParamField path="SourceN" type="string">
+  Additional source files (Source1, Source2, etc.).
+  
+  ```spec
+  Source0:        terra.repo
+  Source1:        terra-extras.repo
+  Source2:        terra-nvidia.repo
+  ```
+</ParamField>
+
+<ParamField path="PatchN" type="string">
+  Patch files to apply during %prep.
+  
+  ```spec
+  Patch0:         0001-No-update.patch
+  ```
+</ParamField>
+
+### Dependencies
+
+<ParamField path="BuildRequires" type="string">
+  Packages needed to build. Can be specified multiple times.
+  
+  ```spec
+  BuildRequires:  cmake >= 3.15
+  BuildRequires:  gcc-c++
+  BuildRequires:  python3-devel
+  ```
+</ParamField>
+
+<ParamField path="Requires" type="string">
+  Runtime dependencies. Auto-detected for libraries, but must specify others.
+  
+  ```spec
+  Requires:       python3-sqlalchemy
+  Requires:       libX11 >= 1.6
+  ```
+</ParamField>
+
+<ParamField path="Recommends" type="string">
+  Suggested packages that enhance functionality but aren't required.
+  
+  ```spec
+  Recommends:     (mpv or mpv-nightly)
+  Recommends:     java-21-openjdk
+  ```
+</ParamField>
+
+<ParamField path="Suggests" type="string">
+  Weak suggestions for additional functionality.
+  
+  ```spec
+  Suggests:       gamemode
+  ```
+</ParamField>
+
+<ParamField path="Obsoletes" type="string">
+  Older package names this replaces.
+  
+  ```spec
+  Obsoletes:      anki <= 2.1.15
+  ```
+</ParamField>
+
+<ParamField path="Conflicts" type="string">
+  Packages that cannot be installed alongside this one.
+  
+  ```spec
+  Conflicts:      anki-qt5
+  ```
+</ParamField>
+
+<ParamField path="Provides" type="string">
+  Virtual packages or capabilities this package provides.
+  
+  ```spec
+  Provides:       %{name}-toolkit-%{major_package_version} = %{?epoch:%{epoch}:}%{version}
+  ```
+</ParamField>
+
+### Architecture Control
+
+<ParamField path="ExclusiveArch" type="string">
+  Only build on specified architectures.
+  
+  ```spec
+  ExclusiveArch:  x86_64 aarch64
+  ```
+</ParamField>
+
+<ParamField path="ExcludeArch" type="string">
+  Do not build on specified architectures.
+  
+  ```spec
+  ExcludeArch:    s390x
+  ```
+</ParamField>
+
+<ParamField path="BuildArch" type="string">
+  For architecture-independent packages.
+  
+  ```spec
+  BuildArch:      noarch
+  ```
+</ParamField>
+
+## Global Variables
+
+### Common Macros
+
+```spec
+# Disable debug package generation
+%global debug_package %{nil}
+
+# Disable build-id links
+%global _build_id_links none
+
+# Define custom variables
+%global real_name prismlauncher
+%global nice_name PrismLauncher
+%global qt_version 6
+
+# Version-based conditionals
+%global dist %{nil}
+```
+
+### Filtering Dependencies
+
+```spec
+# Exclude specific requirements
+%global __requires_exclude libffmpeg.so
+
+# Exclude provides from specific paths
+%global __provides_exclude_from %{_datadir}/%{name}/.*\.so
+
+# Complex filtering
+%global __requires_exclude ^lib-.*.so
+%global __provides_exclude ^lib-.*.so
+```
+
+## Spec Sections
+
+### %description
+
+Provides detailed package description:
+
+```spec
+%description
+Audacity is a cross-platform multitrack audio editor. It allows you to
+record sounds directly or to import files in various formats. It features
+a few simple effects, all of the editing features you should need, and
+unlimited undo.
+```
+
+### %prep
+
+Prepares source code for building:
+
+<CodeGroup>
+```spec Standard Tarball
+%prep
+%autosetup -n Discord
+```
+
+```spec With Patches
+%prep
+%autosetup -p1 -n PrismLauncher-%{version}
+```
+
+```spec Git Clone
+%prep
+rm -rf *
+git clone https://github.com/ankitects/anki .
+git checkout %{version}
+%patch 0 -p1
+```
+
+```spec No Source
+%prep
+# Nothing to prepare
+```
+</CodeGroup>
+
+<Note>
+`%autosetup` automatically extracts source and applies patches. The `-p1` flag strips one directory level from patch paths.
+</Note>
+
+### %build
+
+Compiles the software:
+
+<CodeGroup>
+```spec CMake Build
+%build
+%cmake \
+  -DLauncher_QT_VERSION_MAJOR="%{qt_version}" \
+  -DLauncher_BUILD_PLATFORM="%{build_platform}" \
+  -DBUILD_TESTING=OFF
+
+%cmake_build
+```
+
+```spec Autotools Build
+%build
+%configure \
+  --with-lame \
+  --with-ffmpeg=loaded
+%make_build
+```
+
+```spec Custom Build
+%build
+export RELEASE=1
+export PYTHONPATH=%_libdir/python3/dist-packages
+cargo update
+mold -run ./tools/build
+```
+
+```spec No Build
+%build
+# Nothing to build
+```
+</CodeGroup>
+
+### %install
+
+Installs files into buildroot:
+
+<CodeGroup>
+```spec CMake Install
+%install
+%cmake_install
+```
+
+```spec Manual Install
+%install
+rm -rf $RPM_BUILD_ROOT
+mkdir -p %{buildroot}%{_bindir}
+mkdir -p %{buildroot}%{_datadir}/discord
+cp -rv * %{buildroot}%{_datadir}/discord
+ln -s %_datadir/discord/Discord %buildroot%_bindir/discord
+```
+
+```spec Configuration Files
+%install
+install -D -p -m 0644 -t %{buildroot}%{_sysconfdir}/yum.repos.d %{SOURCE0}
+install -Dpm644 -t %buildroot%_sysconfdir/yum.repos.d %SOURCE1
+```
+
+```spec Python Wheels
+%install
+for file in out/wheels/*.whl; do
+    python -m installer --destdir="%{buildroot}" $file
+done
+```
+</CodeGroup>
+
+### %check
+
+Runs test suite:
+
+```spec
+%check
+%ctest
+
+# Or for other test systems
+desktop-file-validate %{buildroot}%{_datadir}/applications/*.desktop
+appstream-util validate-relax --nonet %{buildroot}%{_metainfodir}/*.xml
+```
+
+### %files
+
+Lists files included in the package:
+
+<CodeGroup>
+```spec Basic Files
+%files
+%license LICENSE*
+%doc README*
+%{_bindir}/anki
+%{_datadir}/applications/anki.desktop
+%{_datadir}/pixmaps/anki.png
+```
+
+```spec With Wildcards
+%files
+%{_bindir}/prismlauncher
+%{_datadir}/%{nice_name}/*.jar
+%{_datadir}/%{nice_name}/*.ini
+%_libdir/python*/site-packages/anki/
+%_libdir/python*/site-packages/anki-%{version}.dist-info/
+```
+
+```spec Configuration Files
+%files
+%config(noreplace) %{_sysconfdir}/yum.repos.d/terra.repo
+```
+
+```spec With Directories
+%files
+%dir %{_datadir}/%{nice_name}
+%{_datadir}/%{nice_name}/
+```
+</CodeGroup>
+
+### %changelog
+
+Version history in reverse chronological order:
+
+```spec
+%changelog
+* Tue Jan 06 2026 Owen Zimmerman <owen@fyralabs.com> - 10.0.0-1
+- Update to 10.0.0, remove Qt5 version
+
+* Wed Apr 03 2024 seth <getchoo at tuta dot io> - 8.2-2
+- move JREs to weak deps, add java 21 for snapshots
+
+* Tue Jan 3 2023 madonuko <mado@fyralabs.com> - 2.1.60
+- Initial package
+```
+
+<Note>
+Format: `* Day Month Date Year Name <email> - version-release`
+
+Use `%autochangelog` for automatic changelog generation in some cases.
+</Note>
+
+## Subpackages
+
+Create multiple packages from one spec:
+
+<CodeGroup>
+```spec Metapackage Structure (cuda.spec)
+%package cli-tools
+Summary:        Compute Unified Device Architecture command-line tools
+Requires:       %{name} = %{?epoch:%{epoch}:}%{version}-%{release}
+Requires:       %{name}-cupti%{?_isa}
+Requires:       %{name}-gdb%{?_isa}
+
+%description cli-tools
+Contains the command line tools to debug and profile CUDA applications.
+
+%package libs
+Summary:        Compute Unified Device Architecture native run-time library
+Requires(post): ldconfig
+Requires:       %{name}-cudart%{?_isa}
+Requires:       libcublas%{?_isa}
+
+%description libs
+Contains the CUDA run-time library required to run CUDA application natively.
+
+%package devel
+Summary:        Development files for %{name}
+Requires:       %{name}%{_isa} = %{?epoch:%{epoch}:}%{version}-%{release}
+Requires:       %{name}-libs%{_isa} = %{?epoch:%{epoch}:}%{version}-%{release}
+
+%description devel
+This package provides the development files of the %{name} package.
+
+%files
+%license LICENSE
+%doc README
+
+%files cli-tools
+# Empty metapackage
+
+%files libs
+# Empty metapackage
+
+%files devel
+%{_libdir}/pkgconfig/cuda.pc
+```
+
+```spec Repository Subpackages (terra-release.spec)
+%package extras
+Summary: Release package for Terra Extras
+Obsoletes: terra-release-extra < 42-3
+Provides: terra-release-extra = %version-%release
+Requires: terra-gpg-keys
+
+%description extras
+Release package for Terra Extras, which is a repository with packages that might cause
+conflict with Fedora.
+
+%package nvidia
+Summary: Release package for the nvidia subrepo of Terra Extras
+Requires: terra-gpg-keys
+
+%description nvidia
+Release package for the Terra Extras nvidia subrepo, which provides nvidia drivers.
+
+%files
+%config(noreplace) %{_sysconfdir}/yum.repos.d/terra.repo
+
+%files extras
+%config(noreplace) %{_sysconfdir}/yum.repos.d/terra-extras.repo
+
+%files nvidia
+%config(noreplace) %{_sysconfdir}/yum.repos.d/terra-nvidia.repo
+```
+</CodeGroup>
+
+## Standard File Paths
+
+Use RPM macros for standard directories:
+
+| Macro | Path | Purpose |
+|-------|------|----------|
+| `%{_bindir}` | `/usr/bin` | User executables |
+| `%{_sbindir}` | `/usr/sbin` | System executables |
+| `%{_libdir}` | `/usr/lib64` (x86_64) | Libraries |
+| `%{_includedir}` | `/usr/include` | Header files |
+| `%{_datadir}` | `/usr/share` | Architecture-independent data |
+| `%{_sysconfdir}` | `/etc` | Configuration files |
+| `%{_mandir}` | `/usr/share/man` | Man pages |
+| `%{_docdir}` | `/usr/share/doc` | Documentation |
+| `%{_localstatedir}` | `/var` | Variable data |
+
+## Best Practices
+
+<Warning>
+**Security:**
+- Never disable GPG signature verification without good reason
+- Validate desktop and appstream files in `%check`
+- Use `%config(noreplace)` for user-editable configuration files
+</Warning>
+
+<Note>
+**Dependencies:**
+- Let RPM auto-detect library dependencies when possible
+- Use `Recommends` for optional features, not `Requires`
+- Version dependencies only when necessary
+- Use boolean dependencies: `(mpv or mpv-nightly)`
+</Note>
+
+<Note>
+**File Lists:**
+- Use wildcards carefully - be specific when possible
+- Always include `%license` and `%doc` markers
+- Use `%dir` for directories without all contents
+- Configuration files need `%config(noreplace)`
+</Note>
+
+## Common Patterns
+
+### Desktop Applications
+
+```spec
+BuildRequires:  desktop-file-utils
+BuildRequires:  libappstream-glib
+
+%install
+desktop-file-install --dir %{buildroot}%{_datadir}/applications \
+  %{buildroot}%{_datadir}/applications/app.desktop
+
+%check
+desktop-file-validate %{buildroot}%{_datadir}/applications/*.desktop
+appstream-util validate-relax --nonet %{buildroot}%{_metainfodir}/*.xml
+
+%files
+%{_datadir}/applications/app.desktop
+%{_datadir}/icons/hicolor/*/apps/app.png
+%{_metainfodir}/app.metainfo.xml
+```
+
+### Python Packages
+
+```spec
+BuildRequires:  python3-devel
+BuildRequires:  python3-setuptools
+
+%install
+for file in out/wheels/*.whl; do
+    python -m installer --destdir="%{buildroot}" $file
+done
+
+find %{buildroot} -iname __pycache__ | xargs -r rm -rf
+
+%files
+%_libdir/python*/site-packages/package/
+%_libdir/python*/site-packages/package-%{version}.dist-info/
+```
+
+### Library Packages
+
+```spec
+%package libs
+Summary:        Runtime libraries for %{name}
+
+%package devel
+Summary:        Development files for %{name}
+Requires:       %{name}-libs%{?_isa} = %{version}-%{release}
+
+%files libs
+%{_libdir}/lib*.so.*
+
+%files devel
+%{_includedir}/*
+%{_libdir}/lib*.so
+%{_libdir}/pkgconfig/*.pc
+```
+
+## Related Documentation
+
+- [anda.hcl Reference](/reference/anda-hcl) - Package configuration
+- [Build System](/reference/build-system) - Understanding the build process
+- [Contributing Guide](/contributing) - Submitting packages

@@ -1,0 +1,443 @@
+---
+title: anda.hcl Reference
+description: Complete reference for anda.hcl configuration files
+---
+
+## Overview
+
+The `anda.hcl` file is the core configuration file for packages in Terra. It defines how packages should be built, which architectures to support, and various metadata labels for the build system.
+
+Every package directory must contain an `anda.hcl` file that specifies at minimum a `project` block with RPM configuration.
+
+## File Structure
+
+### Root Configuration
+
+The root `anda.hcl` (located at the repository root) configures global settings:
+
+<CodeGroup>
+```hcl Root anda.hcl
+config {
+	strip_prefix = "anda/"
+	strip_suffix = "/pkg"
+}
+
+project {}
+```
+</CodeGroup>
+
+<ParamField path="config.strip_prefix" type="string">
+  Prefix to strip from package paths when determining package names.
+</ParamField>
+
+<ParamField path="config.strip_suffix" type="string">
+  Suffix to strip from package paths when determining package names.
+</ParamField>
+
+### Project Block
+
+Every package `anda.hcl` must contain a `project pkg` block:
+
+<CodeGroup>
+```hcl Basic Structure
+project pkg {
+	arches = ["x86_64"]
+	rpm {
+		spec = "package-name.spec"
+	}
+}
+```
+
+```hcl With Labels
+project pkg {
+	arches = ["x86_64"]
+	rpm {
+		spec = "anki.spec"
+	}
+	labels {
+		subrepo = "extras"
+	}
+}
+```
+
+```hcl With Extra Repos
+project pkg {
+	rpm {
+		spec = "prismlauncher.spec"
+		extra_repos = ["https://packages.adoptium.net/artifactory/rpm/fedora/\\$releasever/\\$basearch"]
+	}
+	labels {
+		mock = 1
+	}
+}
+```
+</CodeGroup>
+
+## Configuration Reference
+
+### Architecture Configuration
+
+<ParamField path="arches" type="array">
+  List of architectures to build the package for. If omitted, defaults to all supported architectures.
+  
+  **Common values:**
+  - `"x86_64"` - 64-bit Intel/AMD
+  - `"aarch64"` - 64-bit ARM
+  - `"i386"` - 32-bit Intel/AMD
+  
+  **Example:**
+  ```hcl
+  arches = ["x86_64", "aarch64", "i386"]
+  ```
+</ParamField>
+
+### RPM Configuration
+
+<ParamField path="rpm.spec" type="string" required>
+  Path to the RPM spec file, relative to the package directory.
+  
+  **Example:**
+  ```hcl
+  rpm {
+    spec = "discord.spec"
+  }
+  ```
+</ParamField>
+
+<ParamField path="rpm.extra_repos" type="array">
+  Additional repositories to enable during the build process. Useful when build dependencies are not available in standard Fedora or Terra repositories.
+  
+  **Note:** Use double backslashes (`\\`) to escape RPM variables like `$releasever` and `$basearch`.
+  
+  **Examples:**
+  ```hcl
+  # Single repository
+  extra_repos = ["https://packages.adoptium.net/artifactory/rpm/fedora/\\$releasever/\\$basearch"]
+  
+  # Multiple repositories
+  extra_repos = [
+    "https://repos.fyralabs.com/terrarawhide-nvidia",
+    "https://repos.fyralabs.com/terrarawhide-multimedia"
+  ]
+  ```
+</ParamField>
+
+### Labels
+
+Labels provide metadata to the build system and control various build behaviors.
+
+<ParamField path="labels.subrepo" type="string">
+  Specifies which Terra subrepo this package belongs to.
+  
+  **Valid values:**
+  - `"extras"` - Packages that may conflict with Fedora
+  - `"nvidia"` - NVIDIA driver and CUDA packages
+  - `"mesa"` - Patched Mesa packages
+  - `"multimedia"` - Multimedia codec packages
+  
+  **Example:**
+  ```hcl
+  labels {
+    subrepo = "extras"
+  }
+  ```
+</ParamField>
+
+<ParamField path="labels.mock" type="number">
+  When set to `1`, enables mock build environment with additional isolation.
+  
+  **Use when:**
+  - Package has complex build dependencies
+  - Build requires extra repositories
+  - Need clean build environment
+  
+  **Example:**
+  ```hcl
+  labels {
+    mock = 1
+  }
+  ```
+</ParamField>
+
+<ParamField path="labels.large" type="number">
+  When set to `1`, indicates this is a large package that requires more build resources.
+  
+  **Example:**
+  ```hcl
+  labels {
+    large = 1
+  }
+  ```
+</ParamField>
+
+<ParamField path="labels.nightly" type="number">
+  When set to `1`, marks this package as a nightly/development build.
+  
+  **Example:**
+  ```hcl
+  labels {
+    nightly = 1
+  }
+  ```
+</ParamField>
+
+<ParamField path="labels.updbranch" type="number">
+  When set to `1`, enables branch-specific version tracking.
+  
+  **Example:**
+  ```hcl
+  labels {
+    updbranch = 1
+  }
+  ```
+</ParamField>
+
+## Complete Examples
+
+### Simple Application Package
+
+<CodeGroup>
+```hcl anda/apps/discord/anda.hcl
+project pkg {
+	arches = ["x86_64"]
+	rpm {
+		spec = "discord.spec"
+	}
+}
+```
+</CodeGroup>
+
+A minimal configuration for a simple x86_64-only application.
+
+### Package with Subrepo
+
+<CodeGroup>
+```hcl anda/apps/anki/anda.hcl
+project pkg {
+	arches = ["x86_64"]
+	rpm {
+		spec = "anki.spec"
+	}
+	labels {
+		subrepo = "extras"
+	}
+}
+```
+</CodeGroup>
+
+Package that conflicts with Fedora packages, placed in the extras subrepo.
+
+### Multi-Architecture Library
+
+<CodeGroup>
+```hcl anda/lib/mesa/anda.hcl
+project pkg {
+    arches = ["x86_64", "aarch64", "i386"]
+    rpm {
+		spec = "mesa.spec"
+	}
+    labels {
+        mock = 1
+        subrepo = "mesa"
+		large = 1
+    }
+}
+```
+</CodeGroup>
+
+A large multi-architecture library package with mock builds enabled.
+
+### Package with External Dependencies
+
+<CodeGroup>
+```hcl anda/games/prismlauncher/anda.hcl
+project pkg {
+	rpm {
+		spec = "prismlauncher.spec"
+		extra_repos = ["https://packages.adoptium.net/artifactory/rpm/fedora/\\$releasever/\\$basearch"]
+	}
+	labels {
+		mock = 1
+	}
+}
+```
+</CodeGroup>
+
+Package requiring dependencies from external repositories (Adoptium JDK).
+
+### Multimedia Package with Multiple Repos
+
+<CodeGroup>
+```hcl anda/multimedia/ffmpeg/anda.hcl
+project pkg {
+    arches = ["x86_64", "aarch64", "i386"]
+    rpm {
+        spec = "ffmpeg.spec"
+        extra_repos = [
+          "https://repos.fyralabs.com/terrarawhide-nvidia",
+          "https://repos.fyralabs.com/terrarawhide-multimedia"
+        ]
+    }
+    labels {
+        updbranch = 1
+        mock = 1
+        subrepo = "multimedia"
+    }
+}
+```
+</CodeGroup>
+
+Complex multimedia package requiring NVIDIA and multimedia subrepos.
+
+### NVIDIA/CUDA Package
+
+<CodeGroup>
+```hcl anda/lib/nvidia/cuda/anda.hcl
+project pkg {
+    rpm {
+		spec = "cuda.spec"
+	}
+	labels {
+	   subrepo = "nvidia"
+	   updbranch = 1
+    }
+}
+```
+</CodeGroup>
+
+CUDA toolkit package in the NVIDIA subrepo.
+
+### Nightly Build Package
+
+<CodeGroup>
+```hcl anda/apps/flameshot/anda.hcl
+project pkg {
+    rpm {
+        spec = "flameshot-nightly.spec"
+    }
+    labels {
+        nightly = 1
+    }
+}
+```
+</CodeGroup>
+
+Nightly/development build configuration.
+
+## Best Practices
+
+<Note>
+**Architecture Selection:**
+- Only specify architectures your package actually supports
+- Test on all listed architectures before submitting
+- Omit `arches` if package is `BuildArch: noarch`
+</Note>
+
+<Warning>
+**Extra Repositories:**
+- Always use `\\$releasever` and `\\$basearch` for distribution-independent URLs
+- Prefer Terra or Fedora repositories when possible
+- Document why external repos are needed
+</Warning>
+
+<Note>
+**Subrepo Assignment:**
+- `extras` - Packages that replace or conflict with Fedora packages
+- `nvidia` - All NVIDIA/CUDA related packages
+- `mesa` - Custom Mesa builds only
+- `multimedia` - Codec and multimedia packages
+- No subrepo - Standard packages that complement Fedora
+</Note>
+
+## Common Patterns
+
+### System Tools
+
+```hcl
+project pkg {
+  arches = ["x86_64"]
+  rpm {
+    spec = "asusctl.spec"
+  }
+}
+```
+
+Simple system utilities typically don't need special labels.
+
+### Large Builds
+
+```hcl
+labels {
+  large = 1
+  mock = 1
+}
+```
+
+Combine `large` and `mock` for resource-intensive builds.
+
+### Release Packages
+
+```hcl
+project pkg {
+	arches = ["x86_64"]
+	rpm {
+		spec = "terra-release.spec"
+	}
+	labels {
+		updbranch = 1
+	}
+}
+```
+
+Repository configuration packages often use `updbranch`.
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Build fails with missing dependencies">
+    Add the repository containing those dependencies to `extra_repos`:
+    
+    ```hcl
+    rpm {
+      spec = "mypackage.spec"
+      extra_repos = ["https://repo.example.com/fedora/\\$releasever/\\$basearch"]
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Package conflicts with Fedora">
+    Move to extras subrepo:
+    
+    ```hcl
+    labels {
+      subrepo = "extras"
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Build runs out of resources">
+    Enable the `large` label:
+    
+    ```hcl
+    labels {
+      large = 1
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Need clean build environment">
+    Enable mock:
+    
+    ```hcl
+    labels {
+      mock = 1
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Related Documentation
+
+- [RPM Spec File Reference](/reference/rpm-specs) - Learn how to write spec files
+- [Build System](/reference/build-system) - Understand the build pipeline
+- [Contributing Guide](/contributing) - Package submission guidelines

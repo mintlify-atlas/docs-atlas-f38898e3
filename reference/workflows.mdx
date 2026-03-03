@@ -1,0 +1,558 @@
+---
+title: GitHub Actions Workflows
+description: Comprehensive reference for Terra Packages CI/CD workflows
+---
+
+# GitHub Actions Workflows
+
+Terra Packages uses GitHub Actions to automate package building, testing, and deployment. The CI/CD system is built around five core workflows that handle different aspects of the build process.
+
+## Workflow Overview
+
+Terra Packages implements a sophisticated multi-stage CI/CD pipeline:
+
+1. **Autobuild** - Automatically builds packages when changes are detected
+2. **Manual Build** - Allows manual package building with custom parameters
+3. **JSON Build** - Core build engine called by other workflows
+4. **Bootstrap** - Bootstraps the build system and core tooling
+5. **Update** - Automatically updates package versions
+
+## Autobuild Workflow
+
+The autobuild workflow (`autobuild.yml`) is the primary CI/CD pipeline that automatically builds packages when changes are pushed to the repository.
+
+### Triggers
+
+<Code>
+```yaml
+on:
+  push:
+    paths:
+      - anda/**
+    branches:
+      - frawhide
+  pull_request:
+    branches:
+      - frawhide
+  merge_group:
+    branches:
+      - frawhide
+  workflow_dispatch:
+  workflow_call:
+```
+</Code>
+
+The workflow triggers on:
+- Pushes to the `frawhide` branch that modify files under `anda/`
+- Pull requests targeting `frawhide`
+- Merge queue events
+- Manual workflow dispatch
+- Calls from other workflows
+
+### Build Matrix Generation
+
+The first job generates a build matrix by scanning for changed packages:
+
+<Code>
+```yaml
+manifest:
+  runs-on: ubuntu-24.04-arm
+  outputs:
+    build_matrix: ${{ steps.generate_build_matrix.outputs.build_matrix }}
+  container:
+    image: ghcr.io/terrapkg/builder:frawhide
+    options: --cap-add=SYS_ADMIN --privileged
+  steps:
+    - name: Set workspace as safe
+      run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+    - name: Checkout
+      uses: actions/checkout@v6
+      with:
+        fetch-depth: 0
+    - name: Generate build matrix
+      id: generate_build_matrix
+      run: anda ci >> $GITHUB_OUTPUT
+```
+</Code>
+
+<Note>
+The `anda ci` command analyzes git changes and generates a JSON matrix of packages that need to be built, including architecture and label information.
+</Note>
+
+### Build Job
+
+The build job delegates to the JSON Build workflow:
+
+<Code>
+```yaml
+build:
+  needs: manifest
+  uses: ./.github/workflows/json-build.yml
+  secrets: inherit
+  with:
+    packages: ${{ needs.manifest.outputs.build_matrix }}
+    publish: ${{ github.event_name == 'push' }}
+```
+</Code>
+
+<Note>
+Packages are only published when the event is a direct push (not pull requests).
+</Note>
+
+### AppStream Generation
+
+After building, the workflow generates AppStream metadata for package discovery:
+
+<Code>
+```yaml
+appstream:
+  needs: build
+  runs-on: ubuntu-latest
+  container:
+    image: ghcr.io/terrapkg/appstream-generator:main
+  steps:
+    - name: Download artifacts
+      uses: actions/download-artifact@v7
+      with:
+        merge-multiple: true
+        path: ./artifacts
+    - name: Generate test catalog
+      run: |
+        appstream-builder -v \
+          --packages-dir=artifacts/rpms \
+          --icons-dir=icons \
+          --include-failed \
+          --output-dir=output \
+          --uncompressed-icons \
+          --origin=test \
+          --basename=test \
+          --veto-ignore=missing-parents \
+          --veto-ignore=missing-info 2>&1 | tee asb.log
+```
+</Code>
+
+The AppStream generation step creates metadata catalogs and reports any vetoed packages in the GitHub Actions summary.
+
+## Manual Build Workflow
+
+The manual build workflow (`build.yml`) allows maintainers to build specific packages on-demand with custom configurations.
+
+### Workflow Inputs
+
+<Code>
+```yaml
+on:
+  workflow_dispatch:
+    inputs:
+      packages:
+        description: "Packages to Build"
+        required: true
+      custom_builder:
+        description: "Custom Builder"
+        required: false
+        default: ""
+      architecture:
+        description: "Architectures"
+        required: false
+        default: ""
+        type: string
+```
+</Code>
+
+### Dynamic Run Names
+
+<Code>
+```yaml
+run-name: ${{ inputs.packages }}
+```
+</Code>
+
+The workflow run is named after the packages being built for easy identification.
+
+### Package Parsing
+
+The manifest job processes the input packages and generates a build matrix:
+
+<Code>
+```yaml
+- name: Parse Input
+  id: parsing
+  run: |
+    for pkg in ${{ inputs.packages }}; do
+      touch anda/$pkg/.build
+    done
+    git add --all
+    git commit -a -m "tmp"
+    b=$(anda ci | sed -E 's@^build_matrix=@@')
+    if [ "${{ inputs.architecture }}" != "" ]; then
+      # e.g.: [ unique_by(.pkg)[] | (.arch="x86_64", .arch="aarch64") ]
+      filter=`echo -n "${{ inputs.architecture }}" | tr '[:space:]' '\n' | sed -E '/^$/d; s@^.+$@.arch="\0"@' | tr '\n' ', '`
+      b=`echo $b | jq -c '[unique_by(.pkg)[] | ('"$filter"')]'`
+    elif [ "${{ inputs.custom_builder }}" != "" ]; then
+      b=`echo $b | jq -c 'unique_by(.pkg)'`
+    fi
+    echo "build_matrix=$b" >> $GITHUB_OUTPUT
+```
+</Code>
+
+<Note>
+The workflow uses a clever technique of touching `.build` files and creating a temporary commit to trick `anda ci` into detecting the specified packages as changed.
+</Note>
+
+## JSON Build Workflow
+
+The JSON Build workflow (`json-build.yml`) is the core build engine that performs the actual package compilation. It's designed to be called by other workflows.
+
+### Workflow Call Interface
+
+<Code>
+```yaml
+on:
+  workflow_call:
+    inputs:
+      packages:
+        description: "Packages to Build"
+        required: true
+        type: string
+      publish:
+        description: "Whether the package should be published"
+        required: false
+        type: boolean
+        default: true
+      custom_builder:
+        description: "Custom Builder"
+        required: false
+        type: string
+        default: ""
+      bust_cache:
+        description: "Whether to bust the cache"
+        required: false
+        type: boolean
+        default: false
+```
+</Code>
+
+### Dynamic Runner Selection
+
+The workflow intelligently selects runners based on architecture and package size:
+
+<Code>
+```yaml
+strategy:
+  matrix:
+    pkg: ${{ fromJson(inputs.packages) }}
+    version: ["rawhide"]
+  fail-fast: false
+runs-on: ${{ inputs.custom_builder && inputs.custom_builder || (matrix.pkg.arch == 'aarch64' && matrix.pkg.labels['large']) && 'arm64-lg' || matrix.pkg.arch == 'aarch64' && 'ubuntu-22.04-arm' || matrix.pkg.labels['large'] && format('cirun-x86-64-lg--{0}', github.run_id) || 'ubuntu-22.04' }}
+```
+</Code>
+
+<Note>
+The runner selection logic prioritizes:
+1. Custom builder if specified
+2. Large ARM64 runners for large aarch64 packages
+3. Standard ARM64 runners for aarch64 packages
+4. Large x86_64 runners for large packages
+5. Standard x86_64 runners as fallback
+</Note>
+
+### Compiler Cache (sccache)
+
+The workflow uses sccache for distributed compilation caching:
+
+<Code>
+```yaml
+- name: Configure sccache
+  id: sccache
+  if: ${{ !contains(matrix.pkg.labels.sccache, '0') }}
+  uses: actions/github-script@v8
+  env:
+    SCCACHE_GHA_VERSION: ${{ matrix.version }}-${{ matrix.pkg.arch }}-${{ matrix.pkg.pkg }}
+    SCCACHE_GHA_CACHE_FROM: ${{ matrix.version }}-${{ matrix.pkg.arch }}-${{ matrix.pkg.pkg }}
+  with:
+    script: |
+      const script = require('./.github/scripts/configure-sccache.js')
+      await script({github, context, core, exec})
+```
+</Code>
+
+Caching is keyed by version, architecture, and package name to ensure cache hits for repeated builds.
+
+### Build Process
+
+The build process consists of several stages:
+
+<Code>
+```yaml
+- name: CI Setup Script
+  if: ${{ !contains(matrix.pkg.labels, 'mock') }}
+  run: |
+    dir=$(dirname ${{ matrix.pkg.pkg }})
+    if [ -f $dir/ci_setup.rhai ]; then
+      anda run $dir/ci_setup.rhai --labels script_path=$dir/ci_setup.rhai
+    fi
+
+- name: Install Build Dependencies
+  if: ${{ matrix.pkg.labels.mock != '1' }}
+  run: |
+    dir=$(dirname ${{ matrix.pkg.pkg }})
+    dnf5 builddep -y ${dir}/*.spec
+
+- name: Build with Andaman
+  run: anda build -D "vendor Terra" -D "__python %{__python3}" ${{ matrix.pkg.pkg }} -c terra-${{ matrix.version }}-${{ matrix.pkg.arch }} ${{ !matrix.pkg.labels.mock == '1' && '-rrpmbuild' || '' }}
+```
+</Code>
+
+<Warning>
+Packages with the `mock=1` label skip dependency installation and use mock for isolated builds.
+</Warning>
+
+### Artifact Upload
+
+Built packages are uploaded as workflow artifacts:
+
+<Code>
+```yaml
+- name: Generating artifact name
+  id: art
+  run: |
+    NAME=${{ matrix.pkg.pkg }}-${{ matrix.pkg.arch }}-${{ matrix.version }}
+    x=${NAME//\//@}
+    echo "name=$x" >> $GITHUB_OUTPUT
+
+- uses: actions/upload-artifact@v6
+  with:
+    name: ${{ steps.art.outputs.name }}
+    compression-level: 0 # The RPMs are already compressed :p
+    path: |
+      anda-build/rpm/rpms/*
+      anda-build/rpm/srpm/*
+```
+</Code>
+
+<Note>
+Artifacts use compression level 0 because RPM packages are already compressed.
+</Note>
+
+### Repository Upload
+
+When publishing is enabled, packages are uploaded to the Subatomic repository:
+
+<Code>
+```yaml
+- name: Upload packages to subatomic
+  if: inputs.publish
+  run: |
+    subrepo="${{ matrix.pkg.labels.subrepo }}"
+    subatomic-cli upload --prune \
+      --server https://subatomic.fyralabs.com \
+      --token ${{ secrets.SUBATOMIC_TOKEN }} \
+      terra${{ matrix.version }}${{ matrix.pkg.labels['subrepo'] && '-$subrepo' || '' }} anda-build/rpm/rpms/*
+
+- name: Upload source packages to subatomic
+  if: inputs.publish && matrix.pkg.labels['no_upload_srpms'] != '1'
+  run: |
+    subrepo="${{ matrix.pkg.labels.subrepo }}"
+    subatomic-cli upload --prune \
+      --server https://subatomic.fyralabs.com \
+      --token ${{ secrets.SUBATOMIC_TOKEN }} \
+      terra${{ matrix.version }}${{ matrix.pkg.labels['subrepo'] && '-$subrepo' || '' }}-source anda-build/rpm/srpm/*
+```
+</Code>
+
+Packages can be uploaded to sub-repositories using the `subrepo` label, and source package uploads can be disabled with the `no_upload_srpms=1` label.
+
+### Build Notifications
+
+The workflow notifies Madoguchi (the build tracking service) of build results:
+
+<Code>
+```yaml
+- name: Notify Madoguchi (Success)
+  if: inputs.publish && success()
+  run: ./.github/workflows/mg.sh true "${{matrix.pkg.pkg}}" "${{matrix.version}}" "${{matrix.pkg.arch}}" "${{github.run_id}}" "${{secrets.MADOGUCHI_JWT}}" "$GITHUB_SHA"
+- name: Notify Madoguchi (Failure)
+  if: inputs.publish && (cancelled() || failure())
+  run: ./.github/workflows/mg.sh false "${{matrix.pkg.pkg}}" "${{matrix.version}}" "${{matrix.pkg.arch}}" "${{github.run_id}}" "${{secrets.MADOGUCHI_JWT}}" "$GITHUB_SHA"
+```
+</Code>
+
+## Bootstrap Workflow
+
+The bootstrap workflow (`bootstrap.yml`) builds the core build system tools from scratch using only Fedora base packages.
+
+### Build Matrix
+
+<Code>
+```yaml
+strategy:
+  matrix:
+    version: ["rawhide"]
+    arch: ["x86_64", "aarch64"]
+  fail-fast: true
+runs-on: ${{ matrix.arch == 'aarch64' && 'ubuntu-22.04-arm' || 'ubuntu-22.04' }}
+container:
+  image: registry.fedoraproject.org/fedora-minimal:${{ matrix.version }}
+  options: --cap-add=SYS_ADMIN --privileged
+```
+</Code>
+
+<Note>
+The bootstrap uses minimal Fedora images and builds for both x86_64 and aarch64 architectures.
+</Note>
+
+### Bootstrap Process
+
+The bootstrap follows a specific order to build the toolchain:
+
+<Code>
+```yaml
+- name: Install repositories
+  run: |
+    dnf5 swap -y --setopt=install_weak_deps=False systemd-standalone-sysusers systemd
+    dnf5 install -y --setopt=install_weak_deps=False curl wget git-core openssl-devel cargo podman fuse-overlayfs dnf5-plugins rpmbuild script
+
+- name: Build anda-srpm-macros
+  run: |
+    mkdir -p anda-build/rpm/rpms
+    rpmbuild -bb anda/terra/srpm-macros/*.spec --undefine=_disable_source_fetch -D "_sourcedir $(pwd)/anda/terra/srpm-macros/" -D "_rpmdir $(pwd)/anda-build/rpm/rpms/"
+    mv ./anda-build/rpm/rpms/*/anda-*.rpm ./anda-build/rpm/rpms/
+    dnf5 install -y ./anda-build/rpm/rpms/anda-*.rpm
+
+- name: Install build dependencies
+  run: dnf5 builddep -y anda/terra/{mock-configs,srpm-macros}/*.spec anda/tools/buildsys/{anda,subatomic}/*.spec
+
+- name: Install Anda
+  run: |
+    rpmbuild -bb anda/tools/buildsys/anda/*.spec --undefine=_disable_source_fetch -D "_sourcedir $(pwd)/anda/tools/buildsys/anda/" -D "_rpmdir $(pwd)/anda-build/rpm/rpms/"
+    mv ./anda-build/rpm/rpms/*/anda-*.rpm ./anda-build/rpm/rpms/
+    dnf5 install -y ./anda-build/rpm/rpms/anda-*.rpm
+```
+</Code>
+
+The bootstrap sequence:
+1. Install base system tools
+2. Build anda-srpm-macros using rpmbuild
+3. Install anda-srpm-macros
+4. Install build dependencies
+5. Build and install Anda
+6. Use Anda to build remaining packages
+
+<Code>
+```yaml
+- name: Build terra-mock-configs
+  run: |
+    echo "PATH=$PATH:/github/home/.cargo/bin" >> $GITHUB_ENV
+    export PATH=$PATH:/github/home/.cargo/bin
+    git config --global --add safe.directory "$GITHUB_WORKSPACE"
+    anda build -D "vendor Terra" -rrpmbuild anda/terra/mock-configs/pkg
+- name: Install terra-mock-configs
+  run: dnf5 install -y anda-build/rpm/rpms/terra-mock-configs*.rpm
+
+- name: Build terra-release
+  run: anda build -D "vendor Terra" -rrpmbuild anda/terra/release/pkg
+
+- name: Build terra-appstream-helper
+  run: anda build -D "vendor Terra" -D "__python %{__python3}" -rrpmbuild anda/terra/appstream-helper/pkg
+
+- name: Build Subatomic
+  run: anda build -D "vendor Terra" -rrpmbuild anda/tools/buildsys/subatomic/pkg
+- name: Install Subatomic
+  run: dnf5 install -y ./anda-build/rpm/rpms/subatomic-*.rpm
+```
+</Code>
+
+## Update Workflow
+
+The update workflow (`update.yml`) automatically checks for and applies package version updates.
+
+### Schedule
+
+<Code>
+```yaml
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+```
+</Code>
+
+The workflow runs every 10 minutes to check for updates.
+
+### Update Process
+
+<Code>
+```yaml
+- name: Install SSH signing key & Set up git repository
+  run: |
+    mkdir -p ${{ runner.temp }}
+    echo "${{ secrets.SSH_SIGNING_KEY }}" > ${{ runner.temp }}/signing_key
+    chmod 0700 ${{ runner.temp }}/signing_key
+    git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+- name: Run Update
+  run: anda update --excludes nightly=1 --excludes weekly=1 --excludes updbranch=1
+  env:
+    GITHUB_TOKEN: ${{ secrets.AUTOUPDATE_GH_TOKEN }}
+    RUST_BACKTRACE: full
+```
+</Code>
+
+<Note>
+The update command excludes packages with `nightly=1`, `weekly=1`, or `updbranch=1` labels.
+</Note>
+
+### Multi-Branch Commits
+
+When updates are found, they're committed to multiple release branches:
+
+<Code>
+```yaml
+- name: Save
+  run: |
+    if [[ `git status --porcelain` ]]; then
+      git config user.name "Raboneko"
+      git config user.email "raboneko@fyralabs.com"
+      git config gpg.format "ssh"
+      git config user.signingkey "${{ runner.temp }}/signing_key"
+      msg="bump: $(anda run andax/ci/update_commit_message.rhai)"
+      git commit -S -a -m "$msg"
+      git format-patch HEAD^
+      copy_over () {
+        git checkout $1
+        git apply *.patch || true
+        git add anda
+        git commit -S -a -m "$msg"
+      }
+      copy_over f44 || true
+      copy_over f43 || true
+      copy_over f42 || true
+      copy_over el10 || true
+      git push -u origin --all
+    fi
+```
+</Code>
+
+<Warning>
+All commits are SSH-signed for security and authenticity verification.
+</Warning>
+
+The workflow uses `git format-patch` to apply the same updates to multiple release branches (f44, f43, f42, el10).
+
+## Workflow Permissions
+
+All workflows follow the principle of least privilege:
+
+<Code>
+```yaml
+permissions:
+  contents: read  # Most workflows
+  
+permissions:
+  contents: write  # Update workflow only
+```
+</Code>
+
+<Note>
+Only the update workflow has write permissions to commit changes. All other workflows use read-only access.
+</Note>

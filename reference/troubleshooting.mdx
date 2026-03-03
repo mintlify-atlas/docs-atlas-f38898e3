@@ -1,0 +1,460 @@
+---
+title: "Troubleshooting"
+description: "Solutions to common issues when using Terra Packages"
+---
+
+## Installation Issues
+
+### Terra repository not found
+
+<AccordionGroup>
+  <Accordion title="Error: Failed to download metadata for repo 'terra'">
+    **Problem:** DNF cannot access the Terra repository.
+
+    **Solutions:**
+
+    1. **Check your network connection:**
+       ```bash
+       ping repos.fyralabs.com
+       ```
+
+    2. **Verify the repository URL is correct:**
+       ```bash
+       cat /etc/yum.repos.d/terra.repo
+       ```
+
+    3. **Check if your Fedora version is supported:**
+       ```bash
+       cat /etc/fedora-release
+       ```
+       Terra supports current Fedora releases. Very old releases may not be supported.
+
+    4. **Reinstall terra-release:**
+       ```bash
+       sudo dnf remove terra-release
+       sudo dnf install --nogpgcheck --repofrompath 'terra,https://repos.fyralabs.com/terra$releasever' terra-release
+       ```
+  </Accordion>
+
+  <Accordion title="GPG key retrieval failed">
+    **Problem:** Package manager cannot verify GPG signatures.
+
+    **Solutions:**
+
+    1. **Import GPG keys manually:**
+       ```bash
+       sudo rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-terra
+       ```
+
+    2. **Check if terra-release is properly installed:**
+       ```bash
+       rpm -q terra-release
+       ```
+
+    3. **Reinstall terra-release to get fresh keys:**
+       ```bash
+       sudo dnf reinstall terra-release
+       ```
+
+    <Note>
+      The initial installation of `terra-release` requires `--nogpgcheck` because the GPG keys haven't been installed yet. After installation, all packages are verified.
+    </Note>
+  </Accordion>
+</AccordionGroup>
+
+### Immutable/Atomic Fedora issues
+
+<AccordionGroup>
+  <Accordion title="Permission denied when installing on atomic Fedora">
+    **Problem:** Standard DNF commands don't work on immutable editions.
+
+    **Solution:**
+
+    Use `rpm-ostree` instead of `dnf`:
+    ```bash
+    # First, add the repository configuration
+    curl -fsSL https://github.com/terrapkg/subatomic-repos/raw/main/terra.repo | pkexec tee /etc/yum.repos.d/terra.repo
+
+    # Then install terra-release
+    sudo rpm-ostree install terra-release
+
+    # Reboot to apply changes
+    sudo systemctl reboot
+    ```
+  </Accordion>
+
+  <Accordion title="Changes don't take effect after installation">
+    **Problem:** Packages installed with rpm-ostree require a reboot.
+
+    **Solution:**
+
+    Reboot your system to apply the changes:
+    ```bash
+    sudo systemctl reboot
+    ```
+
+    Alternatively, you can check pending deployments:
+    ```bash
+    rpm-ostree status
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Package Management Issues
+
+### Package conflicts
+
+<AccordionGroup>
+  <Accordion title="Package conflicts with Fedora or RPM Fusion">
+    **Problem:** A package from Terra conflicts with one from another repository.
+
+    **Solutions:**
+
+    1. **Check which repositories provide the package:**
+       ```bash
+       dnf repoquery --whatprovides <package-name>
+       ```
+
+    2. **Specify the repository explicitly:**
+       ```bash
+       sudo dnf install --repo=terra <package-name>
+       ```
+
+    3. **Remove conflicting package first:**
+       ```bash
+       sudo dnf remove <conflicting-package>
+       sudo dnf install <package-name>
+       ```
+
+    4. **For subrepo packages, verify you need that subrepo:**
+       <Warning>
+         Terra subrepos (extras, mesa, nvidia) may intentionally conflict with packages from other repositories. Only install subrepos if you understand the conflicts.
+       </Warning>
+  </Accordion>
+
+  <Accordion title="Dependency resolution errors">
+    **Problem:** DNF cannot resolve package dependencies.
+
+    **Solutions:**
+
+    1. **Update your system first:**
+       ```bash
+       sudo dnf upgrade --refresh
+       ```
+
+    2. **Check if you have all required repositories:**
+       ```bash
+       dnf repolist
+       ```
+       For EL10, ensure EPEL is installed:
+       ```bash
+       sudo dnf install 'https://dl.fedoraproject.org/pub/epel/epel-release-latest-10.noarch.rpm'
+       ```
+
+    3. **Try the --best flag to see more details:**
+       ```bash
+       sudo dnf install --best <package-name>
+       ```
+
+    4. **Check package availability:**
+       ```bash
+       dnf search --repo=terra <package-name>
+       ```
+  </Accordion>
+</AccordionGroup>
+
+### Package not found
+
+<AccordionGroup>
+  <Accordion title="Package not available in Terra">
+    **Problem:** A package you're looking for doesn't exist in Terra.
+
+    **Solutions:**
+
+    1. **Search with a broader term:**
+       ```bash
+       dnf search <broader-term>
+       ```
+
+    2. **Check online package databases:**
+       - [pkgs.org](https://fedora.pkgs.org/rawhide/terra/)
+       - [Repology](https://repology.org/repository/terra_rawhide)
+
+    3. **For EL users, verify package availability:**
+       <Note>
+         Not all packages in Terra are available in Terra EL. Some packages may only be available in the Fedora version.
+       </Note>
+
+    4. **Request the package:**
+       If the package doesn't exist in Terra, you can [request it to be added](https://github.com/terrapkg/packages/issues).
+  </Accordion>
+
+  <Accordion title="Package exists but won't install">
+    **Problem:** Package is found but installation fails.
+
+    **Solutions:**
+
+    1. **Check repository status:**
+       ```bash
+       dnf repolist all | grep terra
+       ```
+       Ensure Terra repos are enabled.
+
+    2. **Clear DNF cache:**
+       ```bash
+       sudo dnf clean all
+       sudo dnf makecache
+       ```
+
+    3. **Check system architecture:**
+       ```bash
+       uname -m
+       ```
+       Ensure the package is built for your architecture (x86_64, aarch64, etc.).
+
+    4. **Check the full error message:**
+       Run with verbose output:
+       ```bash
+       sudo dnf install -v <package-name>
+       ```
+  </Accordion>
+</AccordionGroup>
+
+## Update Issues
+
+<AccordionGroup>
+  <Accordion title="Updates fail to install">
+    **Problem:** Package updates fail during installation.
+
+    **Solutions:**
+
+    1. **Check available disk space:**
+       ```bash
+       df -h /
+       ```
+       Ensure you have sufficient space for updates.
+
+    2. **Clean up old packages:**
+       ```bash
+       sudo dnf autoremove
+       sudo dnf clean packages
+       ```
+
+    3. **Try updating one package at a time:**
+       ```bash
+       sudo dnf update <package-name>
+       ```
+
+    4. **Check for locked databases:**
+       ```bash
+       sudo rm -f /var/lib/rpm/.rpm.lock
+       sudo rpm --rebuilddb
+       ```
+  </Accordion>
+
+  <Accordion title="Package breaks after update">
+    **Problem:** Application stops working after a Terra update.
+
+    **Solutions:**
+
+    1. **Check application logs:**
+       ```bash
+       journalctl -u <service-name>
+       ```
+       or for desktop applications:
+       ```bash
+       <application-name> --verbose
+       ```
+
+    2. **Verify dependencies are updated:**
+       ```bash
+       sudo dnf upgrade
+       ```
+
+    3. **Downgrade to previous version temporarily:**
+       ```bash
+       sudo dnf downgrade <package-name>
+       ```
+
+    4. **Report the issue:**
+       File a bug report on the [Terra GitHub repository](https://github.com/terrapkg/packages/issues) with:
+       - Package name and version
+       - Error messages or logs
+       - Steps to reproduce
+       - System information (`cat /etc/os-release`)
+  </Accordion>
+</AccordionGroup>
+
+## Subrepo Issues
+
+<AccordionGroup>
+  <Accordion title="NVIDIA driver issues">
+    **Problem:** Problems after installing terra-release-nvidia.
+
+    **Solutions:**
+
+    1. **Verify secure boot status:**
+       ```bash
+       mokutil --sb-state
+       ```
+       NVIDIA drivers may require secure boot to be disabled or properly configured.
+
+    2. **Check driver is loaded:**
+       ```bash
+       lsmod | grep nvidia
+       ```
+
+    3. **Rebuild kernel modules:**
+       ```bash
+       sudo akmods --force
+       sudo dracut --force
+       ```
+
+    4. **Check for conflicts with nouveau:**
+       ```bash
+       lsmod | grep nouveau
+       ```
+       Nouveau should be blacklisted when using proprietary drivers.
+
+    See the NVIDIA-specific documentation in `/home/daytona/workspace/source/anda/system/nvidia/README.md` for more details.
+  </Accordion>
+
+  <Accordion title="Mesa subrepo conflicts">
+    **Problem:** Issues after installing terra-release-mesa.
+
+    **Solution:**
+
+    <Warning>
+      The Mesa subrepo contains a patched and codec-complete Mesa that conflicts with the standard Fedora Mesa packages.
+    </Warning>
+
+    1. **Ensure you need the patched Mesa:**
+       The Terra Mesa is designed for specific codec support. If you don't need these features, use standard Mesa.
+
+    2. **Remove and reinstall if needed:**
+       ```bash
+       sudo dnf remove terra-release-mesa
+       sudo dnf distro-sync
+       ```
+
+    3. **Check which Mesa is installed:**
+       ```bash
+       dnf repoquery --installed mesa\*
+       ```
+  </Accordion>
+</AccordionGroup>
+
+## Enterprise Linux (EL) Specific Issues
+
+<AccordionGroup>
+  <Accordion title="EPEL repository not found">
+    **Problem:** Terra EL requires EPEL but it's not installed.
+
+    **Solution:**
+
+    Install EPEL for EL10:
+    ```bash
+    sudo dnf install 'https://dl.fedoraproject.org/pub/epel/epel-release-latest-10.noarch.rpm'
+    ```
+
+    Verify installation:
+    ```bash
+    dnf repolist | grep epel
+    ```
+  </Accordion>
+
+  <Accordion title="Fewer packages available on EL">
+    **Problem:** A package available on Fedora Terra is not available on Terra EL.
+
+    **Solution:**
+
+    <Note>
+      Not all packages in Terra are available for EL. This is expected due to differences between Fedora and Enterprise Linux.
+    </Note>
+
+    1. **Check if the package is available:**
+       ```bash
+       dnf search --repo=terra <package-name>
+       ```
+
+    2. **Request EL support for the package:**
+       File an issue on the [Terra GitHub repository](https://github.com/terrapkg/packages/issues) requesting EL support.
+
+    3. **Consider alternative packages:**
+       Search EPEL and other EL-compatible repositories.
+  </Accordion>
+</AccordionGroup>
+
+## Performance Issues
+
+<AccordionGroup>
+  <Accordion title="DNF operations are slow">
+    **Problem:** Package manager operations take too long.
+
+    **Solutions:**
+
+    1. **Enable fastest mirror:**
+       ```bash
+       echo 'fastestmirror=True' | sudo tee -a /etc/dnf/dnf.conf
+       ```
+
+    2. **Increase parallel downloads:**
+       ```bash
+       echo 'max_parallel_downloads=10' | sudo tee -a /etc/dnf/dnf.conf
+       ```
+
+    3. **Clean metadata cache:**
+       ```bash
+       sudo dnf clean metadata
+       sudo dnf makecache
+       ```
+
+    4. **Check repository mirrors:**
+       Some repository mirrors may be slow. The metadata will automatically use faster mirrors.
+  </Accordion>
+</AccordionGroup>
+
+## Getting More Help
+
+If your issue isn't covered here:
+
+<CardGroup cols={2}>
+  <Card
+    title="Join the Community"
+    icon="comments"
+    href="/reference/community"
+  >
+    Get real-time help from Terra users and maintainers in community chat channels.
+  </Card>
+  <Card
+    title="Report a Bug"
+    icon="bug"
+    href="https://github.com/terrapkg/packages/issues"
+  >
+    File a detailed bug report on GitHub for investigation by maintainers.
+  </Card>
+  <Card
+    title="Check FAQ"
+    icon="question"
+    href="/reference/faq"
+  >
+    Review frequently asked questions for additional information.
+  </Card>
+  <Card
+    title="Security Issues"
+    icon="shield-halved"
+    href="https://github.com/terrapkg/packages/security/advisories"
+  >
+    Report security vulnerabilities through GitHub's security advisory system.
+  </Card>
+</CardGroup>
+
+## Contributing Fixes
+
+Found a solution to a problem not listed here? Consider contributing to this documentation:
+
+1. The documentation source is available in the Terra repository
+2. Submit improvements via pull request
+3. Help other users by sharing your solutions
+
+Your contributions make Terra better for everyone!
